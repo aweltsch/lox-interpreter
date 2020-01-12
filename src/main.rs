@@ -4,6 +4,7 @@ use std::fs::File;
 use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
+use std::io;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -36,6 +37,12 @@ fn runFile(path: &Path) {
 }
 
 fn runPrompt() {
+    loop {
+        let mut line = String::new();
+        io::stdin().read_line(&mut line);
+
+        run(&line);
+    }
 }
 
 fn run(s: &str) {
