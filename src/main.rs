@@ -40,6 +40,11 @@ fn run_prompt() {
 
 fn run(s: &str) {
     let scanner = Scanner::new();
+    let tokens = scanner.scan_tokens();
+
+    for token in tokens.iter() {
+        println!("{:?}", token);
+    }
 }
 
 struct Scanner {
@@ -56,6 +61,7 @@ impl Scanner {
     }
 }
 
+#[derive(Debug)]
 struct Token {
 }
 
