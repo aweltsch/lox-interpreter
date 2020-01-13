@@ -46,4 +46,22 @@ fn runPrompt() {
 }
 
 fn run(s: &str) {
+    let scanner = Scanner::new();
+}
+
+struct Scanner {
+    source: String
+}
+
+impl Scanner {
+    fn scanTokens(self: &Scanner) -> Vec<Token> {
+        Vec::new()
+    }
+
+    fn new() -> Scanner {
+        Scanner { source: "".to_string() }
+    }
+}
+
+struct Token {
 }
