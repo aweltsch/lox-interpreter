@@ -1,6 +1,5 @@
 use std::env;
 use std::error::Error;
-use std::fs::File;
 use std::fs;
 use std::path::Path;
 use std::io;
@@ -26,25 +25,29 @@ fn run_file(path: &Path) {
         Err(why) => panic!("can not read file conents: {}", why.description()),
         Ok(s) => s
     };
-    run(&file_content);
+    match run(&file_content) {
+        Ok(v) => v,
+        Err(e) => std::process::exit(65)
+    }
 }
 
 fn run_prompt() {
     loop {
         let mut line = String::new();
         io::stdin().read_line(&mut line);
-
         run(&line);
     }
 }
 
-fn run(s: &str) {
+fn run(s: &str) -> Result<(), &'static str> {
     let scanner = Scanner::new();
     let tokens = scanner.scan_tokens();
 
     for token in tokens.iter() {
         println!("{:?}", token);
     }
+
+    Ok(())
 }
 
 struct Scanner {
