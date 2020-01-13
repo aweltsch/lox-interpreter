@@ -27,15 +27,22 @@ fn run_file(path: &Path) {
     };
     match run(&file_content) {
         Ok(v) => v,
-        Err(e) => std::process::exit(65)
+        Err(_) => std::process::exit(65)
     }
 }
 
 fn run_prompt() {
     loop {
         let mut line = String::new();
-        io::stdin().read_line(&mut line);
-        run(&line);
+        match io::stdin().read_line(&mut line) {
+            Err(why) => panic!("can not read from stdin"),
+            Ok(s) => s
+        };
+        // ignore error while running script
+        match run(&line) {
+            Ok(v) => v,
+            Err(_) => ()
+        };
     }
 }
 
