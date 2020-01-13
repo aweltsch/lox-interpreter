@@ -22,12 +22,6 @@ fn main() {
 }
 
 fn run_file(path: &Path) {
-    let mut file = match File::open(path) {
-        Err(why) => panic!("can't open {}: {}", path.display(),
-                                                why.description()),
-        Ok(file) => file
-    };
-
     let file_content = match fs::read_to_string(path) {
         Err(why) => panic!("can not read file conents: {}", why.description()),
         Ok(s) => s
