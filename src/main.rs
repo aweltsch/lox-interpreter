@@ -2,7 +2,6 @@ use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::fs;
-use std::io::prelude::*;
 use std::path::Path;
 use std::io;
 
@@ -14,29 +13,29 @@ fn main() {
         std::process::exit(64);
     } else if args.len() == 2 {
         let path = Path::new(&args[1]);
-        runFile(path);
+        run_file(path);
     } else if args.len() == 1 {
-        runPrompt();
+        run_prompt();
     } else {
         panic!("Fatal: there needs to be at least one argument!");
     }
 }
 
-fn runFile(path: &Path) {
+fn run_file(path: &Path) {
     let mut file = match File::open(path) {
         Err(why) => panic!("can't open {}: {}", path.display(),
                                                 why.description()),
         Ok(file) => file
     };
 
-    let fileContent = match fs::read_to_string(path) {
+    let file_content = match fs::read_to_string(path) {
         Err(why) => panic!("can not read file conents: {}", why.description()),
         Ok(s) => s
     };
-    run(&fileContent);
+    run(&file_content);
 }
 
-fn runPrompt() {
+fn run_prompt() {
     loop {
         let mut line = String::new();
         io::stdin().read_line(&mut line);
@@ -54,7 +53,7 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn scanTokens(self: &Scanner) -> Vec<Token> {
+    fn scan_tokens(self: &Scanner) -> Vec<Token> {
         Vec::new()
     }
 
