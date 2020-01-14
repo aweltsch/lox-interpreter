@@ -71,8 +71,12 @@ impl Scanner {
     }
 }
 
+// the literal is bundled in the TokenType
 #[derive(Debug)]
 struct Token {
+    token_type: TokenType,
+    lexeme: String,
+    line: i32
 }
 
 fn error(line: i32, message: &str) {
@@ -81,4 +85,26 @@ fn error(line: i32, message: &str) {
 
 fn report(line: i32, location: &str, message: &str) {
     eprintln!("[line {} ] Error {} : {}", line, location, message);
+}
+
+#[derive(Debug)]
+enum TokenType {
+  // Single-character tokens.
+  LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
+  COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+
+  // One or two character tokens.
+  BANG, BANG_EQUAL,
+  EQUAL, EQUAL_EQUAL,
+  GREATER, GREATER_EQUAL,
+  LESS, LESS_EQUAL,
+
+  // Literals.
+  IDENTIFIER(String), STRING(String), NUMBER(f64),
+
+  // Keywords.
+  AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
+  PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+
+  EOF
 }
