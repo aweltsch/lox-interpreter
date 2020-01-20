@@ -3,6 +3,9 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::io;
+use std::iter::Peekable;
+use std::str::Chars;
+use std::option::Option;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -47,8 +50,8 @@ fn run_prompt() {
 }
 
 fn run(s: &str) -> Result<(), &'static str> {
-    let scanner = Scanner::new();
-    let tokens = scanner.scan_tokens();
+    let mut scanner = Scanner::new();
+    let tokens = scanner.scan_tokens(s);
 
     for token in tokens.iter() {
         println!("{:?}", token);
@@ -58,19 +61,93 @@ fn run(s: &str) -> Result<(), &'static str> {
 }
 
 struct Scanner {
-    source: String
+    start: usize,
+    current: usize,
+    line: i32
 }
 
+// TODO do this the rust way! to me this looks too much like the Java source
 impl Scanner {
-    fn scan_tokens(self: &Scanner) -> Vec<Token> {
-        Vec::new()
+    fn scan_tokens(self: &mut Scanner, source: &str) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        // TODO: ugly solution. rethink this!
+        // this part looks like bugs...
+        // can not _easily_ use source.lines() iterator, because lox supports multiline strings
+        let mut char_iter = source.chars().peekable();
+        while char_iter.peek().is_some() {
+            // start of a new lexeme
+            self.start = self.current;
+
+            let token_type = self.scan_token(&mut char_iter);
+            match token_type {
+                Some(t) => {
+                    let lexeme = &source[self.start..self.current];
+                    tokens.push(Token {token_type: t, lexeme: lexeme.to_string(), line: self.line});
+                },
+                None => ()
+            }
+        }
+        tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: self.line});
+        tokens
     }
 
     fn new() -> Scanner {
-        Scanner { source: "".to_string() }
+        Scanner { line: 1, start: 0, current: 0 }
+    }
+
+    fn scan_token(self: &mut Scanner, char_iter: &mut Peekable<Chars>) -> Option<TokenType> {
+        self.current = self.current + 1;
+        let c = char_iter.next()?;
+
+        let token_type = match c {
+            '(' => Some(TokenType::LEFT_PAREN),
+            ')' => Some(TokenType::RIGHT_PAREN),
+            '{' => Some(TokenType::LEFT_BRACE),
+            '}' => Some(TokenType::RIGHT_BRACE),
+            ',' => Some(TokenType::COMMA),
+            '.' => Some(TokenType::DOT),
+            '-' => Some(TokenType::MINUS),
+            '+' => Some(TokenType::PLUS),
+            ';' => Some(TokenType::SEMICOLON),
+            '*' => Some(TokenType::STAR),
+            '!' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::BANG_EQUAL)
+            } else {
+                Some(TokenType::BANG)
+            },
+            '=' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::EQUAL_EQUAL)
+            } else {
+                Some(TokenType::EQUAL)
+            },
+            '<' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::LESS_EQUAL)
+            } else {
+                Some(TokenType::LESS)
+            },
+            '>' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::GREATER_EQUAL)
+            } else {
+                Some(TokenType::GREATER)
+            },
+            default => None
+        };
+        if token_type.is_none() {
+            error(self.line, "Unexpected character.");
+        }
+        token_type
     }
 }
 
+fn next_char_matches(char_iter: &mut Peekable<Chars>, c: char) -> bool {
+    match char_iter.peek() {
+        Some(a) => *a == c,
+        None => false
+    }
+}
+
+// TODO: proper fmt::Display trait
 // the literal is bundled in the TokenType
 #[derive(Debug)]
 struct Token {
