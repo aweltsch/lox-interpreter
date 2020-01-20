@@ -131,6 +131,14 @@ impl Scanner {
             } else {
                 Some(TokenType::GREATER)
             },
+            '/' => if next_char_matches(char_iter, '/') {
+                while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
+                    char_iter.next();
+                }
+                None
+            } else {
+                Some(TokenType::SLASH)
+            }
             default => None
         };
         if token_type.is_none() {
