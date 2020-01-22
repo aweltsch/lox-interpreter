@@ -50,8 +50,7 @@ fn run_prompt() {
 }
 
 fn run(s: &str) -> Result<(), &'static str> {
-    let mut scanner = Scanner::new();
-    let tokens = scanner.scan_tokens(s);
+    let tokens = scan_tokens(s);
 
     for token in tokens.iter() {
         println!("{:?}", token);
@@ -60,91 +59,107 @@ fn run(s: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-struct Scanner {
-    start: usize,
-    current: usize,
-    line: i32
+struct ScannerState {
+    line: i32,
+    cur_lexeme: String
 }
 
-// TODO do this the rust way! to me this looks too much like the Java source
-impl Scanner {
-    fn scan_tokens(self: &mut Scanner, source: &str) -> Vec<Token> {
-        let mut tokens = Vec::new();
+fn scan_tokens(source: &str) -> Vec<Token> {
+    let mut tokens = Vec::new();
+    let mut scanner_state = ScannerState { line: 1, cur_lexeme: String::new() };
 
-        // TODO: ugly solution. rethink this!
-        // this part looks like bugs...
-        // can not _easily_ use source.lines() iterator, because lox supports multiline strings
-        let mut char_iter = source.chars().peekable();
-        while char_iter.peek().is_some() {
-            // start of a new lexeme
-            self.start = self.current;
+    // TODO: ugly solution. rethink this!
+    // this part looks like bugs...
+    // can not _easily_ use source.lines() iterator, because lox supports multiline strings
+    let mut char_iter = source.chars().peekable();
+    while char_iter.peek().is_some() {
+        // start of a new lexeme
+        scanner_state.cur_lexeme.clear();
 
-            let token_type = self.scan_token(&mut char_iter);
-            match token_type {
-                Some(t) => {
-                    let lexeme = &source[self.start..self.current];
-                    tokens.push(Token {token_type: t, lexeme: lexeme.to_string(), line: self.line});
-                },
-                None => ()
-            }
+        let token_type = scan_token(&mut char_iter, &mut scanner_state );
+        match token_type {
+            Some(t) => {
+                tokens.push(Token {token_type: t, lexeme: scanner_state.cur_lexeme.to_string(), line: scanner_state.line});
+            },
+            None => ()
         }
-        tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: self.line});
-        tokens
+    }
+    tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: scanner_state.line});
+    tokens
+}
+
+
+fn scan_token(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
+    let c = char_iter.next()?;
+
+    let token_type = match c {
+        '(' => Some(TokenType::LEFT_PAREN),
+        ')' => Some(TokenType::RIGHT_PAREN),
+        '{' => Some(TokenType::LEFT_BRACE),
+        '}' => Some(TokenType::RIGHT_BRACE),
+        ',' => Some(TokenType::COMMA),
+        '.' => Some(TokenType::DOT),
+        '-' => Some(TokenType::MINUS),
+        '+' => Some(TokenType::PLUS),
+        ';' => Some(TokenType::SEMICOLON),
+        '*' => Some(TokenType::STAR),
+        '!' => if next_char_matches(char_iter, '=') {
+            Some(TokenType::BANG_EQUAL)
+        } else {
+            Some(TokenType::BANG)
+        },
+        '=' => if next_char_matches(char_iter, '=') {
+            Some(TokenType::EQUAL_EQUAL)
+        } else {
+            Some(TokenType::EQUAL)
+        },
+        '<' => if next_char_matches(char_iter, '=') {
+            Some(TokenType::LESS_EQUAL)
+        } else {
+            Some(TokenType::LESS)
+        },
+        '>' => if next_char_matches(char_iter, '=') {
+            Some(TokenType::GREATER_EQUAL)
+        } else {
+            Some(TokenType::GREATER)
+        },
+        '/' => if next_char_matches(char_iter, '/') {
+            while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
+                char_iter.next();
+            }
+            None
+        } else {
+            Some(TokenType::SLASH)
+        },
+        '\n' => {
+            scanner_state.line += 1;
+            None
+        },
+        '"' => read_string(char_iter, scanner_state),
+        default => None
+    };
+    if token_type.is_none() {
+        error(scanner_state.line, "Unexpected character.");
+    }
+    token_type
+}
+
+fn read_string(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
+    let mut value = String::new();
+    while char_iter.peek().is_some() && !next_char_matches(char_iter, '"') {
+        let x = char_iter.next()?;
+        if (x == '\n') {
+            scanner_state.line += 1;
+        }
+        value.push(x);
     }
 
-    fn new() -> Scanner {
-        Scanner { line: 1, start: 0, current: 0 }
-    }
-
-    fn scan_token(self: &mut Scanner, char_iter: &mut Peekable<Chars>) -> Option<TokenType> {
-        self.current = self.current + 1;
-        let c = char_iter.next()?;
-
-        let token_type = match c {
-            '(' => Some(TokenType::LEFT_PAREN),
-            ')' => Some(TokenType::RIGHT_PAREN),
-            '{' => Some(TokenType::LEFT_BRACE),
-            '}' => Some(TokenType::RIGHT_BRACE),
-            ',' => Some(TokenType::COMMA),
-            '.' => Some(TokenType::DOT),
-            '-' => Some(TokenType::MINUS),
-            '+' => Some(TokenType::PLUS),
-            ';' => Some(TokenType::SEMICOLON),
-            '*' => Some(TokenType::STAR),
-            '!' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::BANG_EQUAL)
-            } else {
-                Some(TokenType::BANG)
-            },
-            '=' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::EQUAL_EQUAL)
-            } else {
-                Some(TokenType::EQUAL)
-            },
-            '<' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::LESS_EQUAL)
-            } else {
-                Some(TokenType::LESS)
-            },
-            '>' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::GREATER_EQUAL)
-            } else {
-                Some(TokenType::GREATER)
-            },
-            '/' => if next_char_matches(char_iter, '/') {
-                while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
-                    char_iter.next();
-                }
-                None
-            } else {
-                Some(TokenType::SLASH)
-            }
-            default => None
-        };
-        if token_type.is_none() {
-            error(self.line, "Unexpected character.");
-        }
-        token_type
+    if next_char_matches(char_iter, '"') {
+        char_iter.next(); // skip "
+        Some(TokenType::STRING(value))
+    } else {
+        error(scanner_state.line, "Unterminated string.");
+        None
     }
 }
 
