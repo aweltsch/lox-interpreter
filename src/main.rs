@@ -89,8 +89,7 @@ impl<'a> ScannerState<'a> {
         let token_type = if peek.is_digit(10) {
             self.scan_number()
         } else if peek.is_alphabetic() {
-            self.advance()?;
-            None
+            self.scan_identifier()
         } else {
             let c = self.advance()?;
 
@@ -188,10 +187,15 @@ impl<'a> ScannerState<'a> {
         while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_digit(10) {
             self.advance();
         }
+
         match self.cur_lexeme.as_str().parse::<f64>() {
             Ok(num) => Some(TokenType::NUMBER(num)),
             Err(_) => None
         }
+    }
+
+    fn scan_identifier(&mut self) -> Option<TokenType> {
+        None
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
