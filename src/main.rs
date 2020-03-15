@@ -6,6 +6,7 @@ use std::io;
 use std::iter::Peekable;
 use std::str::Chars;
 use std::option::Option;
+use std::collections::VecDeque;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -57,6 +58,25 @@ fn run(s: &str) -> Result<(), &'static str> {
     }
 
     Ok(())
+}
+
+struct NPeekable<'a> {
+    lookup: VecDeque<char>,
+    char_iter: Chars<'a>
+}
+
+impl<'a> NPeekable<'a> {
+    fn next(&mut self) -> Option<char> {
+        None
+    }
+
+    fn peek() -> Option<char> {
+        None
+    }
+
+    fn n_peek(n: i64) -> Option<char> {
+        None
+    }
 }
 
 struct ScannerState<'a> {
