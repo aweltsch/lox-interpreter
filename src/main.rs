@@ -71,15 +71,27 @@ impl<'a> NPeekable<'a> {
     }
 
     fn next(&mut self) -> Option<char> {
-        None
+        if self.lookup.len() > 0 {
+            self.lookup.pop_front()
+        } else {
+            self.char_iter.next()
+        }
     }
 
-    fn peek(&mut self) -> Option<&'a char> {
-        None
+    fn peek(&mut self) -> Option<&char> {
+        self.n_peek(1)
     }
 
-    fn n_peek(&mut self, n: usize) -> Option<&'a char> {
-        None
+    fn n_peek(&mut self, n: usize) -> Option<&char> {
+        if n == 0 {
+            return None;
+        }
+        if n > self.lookup.len() {
+            for i in 0..(n - self.lookup.len()) {
+                self.lookup.push_back(self.char_iter.next()?);
+            }
+        }
+        self.lookup.get(n - 1)
     }
 }
 
@@ -393,9 +405,12 @@ mod tests {
     #[test]
     fn n_peekable() {
         let mut char_iter = NPeekable::new("012345");
+        assert_eq!(char_iter.n_peek(0).is_none(), true);
+
         assert_eq!(char_iter.peek().unwrap(), &'0');
-        assert_eq!(char_iter.n_peek(0).unwrap(), &'0');
-        assert_eq!(char_iter.n_peek(2).unwrap(), &'2');
+        assert_eq!(char_iter.n_peek(1).unwrap(), &'0');
+        assert_eq!(char_iter.n_peek(3).unwrap(), &'2');
+        assert_eq!(char_iter.n_peek(100).is_none(), true);
 
         assert_eq!(char_iter.next().unwrap(), '0');
         assert_eq!(char_iter.next().unwrap(), '1');
@@ -403,6 +418,7 @@ mod tests {
 
         assert_eq!(char_iter.peek().unwrap(), &'3');
         assert_eq!(char_iter.n_peek(2).unwrap(), &'4');
+        assert_eq!(char_iter.peek().unwrap(), &'3');
 
         assert_eq!(char_iter.next().unwrap(), '3');
         assert_eq!(char_iter.next().unwrap(), '4');
