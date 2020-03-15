@@ -59,14 +59,15 @@ fn run(s: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-struct ScannerState {
+struct ScannerState<'a> {
     line: i32,
-    cur_lexeme: String
+    cur_lexeme: String,
+    char_iter: &'a mut Peekable<Chars<'a>>
 }
 
-impl ScannerState {
-    fn next(&mut self, char_iter: &mut Peekable<Chars>) -> Option<char> {
-        match char_iter.next() {
+impl<'a> ScannerState<'a> {
+    fn next(&mut self) -> Option<char> {
+        match self.char_iter.next() {
             Some(c) => {
                 self.cur_lexeme.push(c);
                 Some(c)
@@ -75,27 +76,124 @@ impl ScannerState {
         }
     }
     // TODO ugly
-    fn peek(char_iter: &mut Peekable<Chars>) -> Option<char> {
-        match char_iter.peek() {
+    fn peek(&mut self) -> Option<char> {
+        match self.char_iter.peek() {
             Some(c) => Some(*c),
             None => None
+        }
+    }
+    fn scan_token(&mut self) -> Option<TokenType> {
+        let peek = self.peek()?;
+        let token_type = if peek.is_digit(10) {
+            self.scan_number()
+        } else if peek.is_alphabetic() {
+            self.next()?;
+            None
+        } else {
+            let c = self.next()?;
+
+            match c {
+                '(' => Some(TokenType::LEFT_PAREN),
+                ')' => Some(TokenType::RIGHT_PAREN),
+                '{' => Some(TokenType::LEFT_BRACE),
+                '}' => Some(TokenType::RIGHT_BRACE),
+                ',' => Some(TokenType::COMMA),
+                '.' => Some(TokenType::DOT),
+                '-' => Some(TokenType::MINUS),
+                '+' => Some(TokenType::PLUS),
+                ';' => Some(TokenType::SEMICOLON),
+                '*' => Some(TokenType::STAR),
+                '!' => if self.next_char_matches('=') {
+                    Some(TokenType::BANG_EQUAL)
+                } else {
+                    Some(TokenType::BANG)
+                },
+                '=' => if self.next_char_matches('=') {
+                    Some(TokenType::EQUAL_EQUAL)
+                } else {
+                    Some(TokenType::EQUAL)
+                },
+                '<' => if self.next_char_matches('=') {
+                    Some(TokenType::LESS_EQUAL)
+                } else {
+                    Some(TokenType::LESS)
+                },
+                '>' => if self.next_char_matches('=') {
+                    Some(TokenType::GREATER_EQUAL)
+                } else {
+                    Some(TokenType::GREATER)
+                },
+                '/' => if self.next_char_matches('/') {
+                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
+                        self.char_iter.next();
+                    }
+                    None
+                } else {
+                    Some(TokenType::SLASH)
+                },
+                '\n' => {
+                    self.line += 1;
+                    None
+                },
+                '"' => self.read_string(),
+                default => {
+                    None
+                }
+            }
+        };
+
+        if token_type.is_none() {
+            error(self.line, "Unexpected character.");
+        }
+        token_type
+    }
+
+
+    fn read_string(&mut self) -> Option<TokenType> {
+        let mut value = String::new();
+        while self.char_iter.peek().is_some() && !self.next_char_matches('"') {
+            let x = self.char_iter.next()?;
+            if (x == '\n') {
+                self.line += 1;
+            }
+            value.push(x);
+        }
+
+        if self.next_char_matches('"') {
+            self.char_iter.next(); // skip "
+            Some(TokenType::STRING(value))
+        } else {
+            error(self.line, "Unterminated string.");
+            None
+        }
+    }
+
+    fn scan_number(&mut self) -> Option<TokenType> {
+        None
+    }
+
+    fn next_char_matches(&mut self, c: char) -> bool {
+        match self.char_iter.peek() {
+            Some(a) => *a == c,
+            None => false
         }
     }
 }
 
 fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut scanner_state = ScannerState { line: 1, cur_lexeme: String::new() };
+    let mut char_iter = source.chars().peekable();
+    let mut scanner_state = ScannerState { line: 0, cur_lexeme: String::new(), char_iter:
+        &mut char_iter };
 
     // TODO: ugly solution. rethink this!
     // this part looks like bugs...
     // can not _easily_ use source.lines() iterator, because lox supports multiline strings
-    let mut char_iter = source.chars().peekable();
-    while char_iter.peek().is_some() {
+    while scanner_state.peek().is_some() {
         // start of a new lexeme
         scanner_state.cur_lexeme.clear();
 
-        let token_type = scan_token(&mut char_iter, &mut scanner_state );
+        let token_type = scanner_state.scan_token();
         match token_type {
             Some(t) => {
                 tokens.push(Token {token_type: t, lexeme: scanner_state.cur_lexeme.to_string(), line: scanner_state.line});
@@ -107,102 +205,6 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     tokens
 }
 
-
-fn scan_token(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
-    let peek = char_iter.peek()?;
-    let token_type = if peek.is_digit(10) {
-        scan_number(char_iter, scanner_state)
-    } else if peek.is_alphabetic() {
-        scanner_state.next(char_iter)?;
-        None
-    } else {
-        let c = scanner_state.next(char_iter)?;
-
-        match c {
-            '(' => Some(TokenType::LEFT_PAREN),
-            ')' => Some(TokenType::RIGHT_PAREN),
-            '{' => Some(TokenType::LEFT_BRACE),
-            '}' => Some(TokenType::RIGHT_BRACE),
-            ',' => Some(TokenType::COMMA),
-            '.' => Some(TokenType::DOT),
-            '-' => Some(TokenType::MINUS),
-            '+' => Some(TokenType::PLUS),
-            ';' => Some(TokenType::SEMICOLON),
-            '*' => Some(TokenType::STAR),
-            '!' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::BANG_EQUAL)
-            } else {
-                Some(TokenType::BANG)
-            },
-            '=' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::EQUAL_EQUAL)
-            } else {
-                Some(TokenType::EQUAL)
-            },
-            '<' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::LESS_EQUAL)
-            } else {
-                Some(TokenType::LESS)
-            },
-            '>' => if next_char_matches(char_iter, '=') {
-                Some(TokenType::GREATER_EQUAL)
-            } else {
-                Some(TokenType::GREATER)
-            },
-            '/' => if next_char_matches(char_iter, '/') {
-                while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
-                    char_iter.next();
-                }
-                None
-            } else {
-                Some(TokenType::SLASH)
-            },
-            '\n' => {
-                scanner_state.line += 1;
-                None
-            },
-            '"' => read_string(char_iter, scanner_state),
-            default => {
-                None
-            }
-        }
-    };
-
-    if token_type.is_none() {
-        error(scanner_state.line, "Unexpected character.");
-    }
-    token_type
-}
-
-fn read_string(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
-    let mut value = String::new();
-    while char_iter.peek().is_some() && !next_char_matches(char_iter, '"') {
-        let x = char_iter.next()?;
-        if (x == '\n') {
-            scanner_state.line += 1;
-        }
-        value.push(x);
-    }
-
-    if next_char_matches(char_iter, '"') {
-        char_iter.next(); // skip "
-        Some(TokenType::STRING(value))
-    } else {
-        error(scanner_state.line, "Unterminated string.");
-        None
-    }
-}
-
-fn scan_number(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
-    None
-}
-
-fn next_char_matches(char_iter: &mut Peekable<Chars>, c: char) -> bool {
-    match char_iter.peek() {
-        Some(a) => *a == c,
-        None => false
-    }
-}
 
 // TODO: proper fmt::Display trait
 // the literal is bundled in the TokenType
