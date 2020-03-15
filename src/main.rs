@@ -194,7 +194,28 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_identifier(&mut self) -> Option<TokenType> {
-        None
+        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_alphanumeric() {
+            self.advance();
+        }
+        Some(match self.cur_lexeme.as_str() {
+            "and" => TokenType::AND,                       
+            "class" => TokenType::CLASS,                     
+            "else" => TokenType::ELSE,                      
+            "false" => TokenType::FALSE,                     
+            "for" => TokenType::FOR,                       
+            "fun" => TokenType::FUN,                       
+            "if" => TokenType::IF,                        
+            "nil" => TokenType::NIL,                       
+            "or" => TokenType::OR,                        
+            "print" => TokenType::PRINT,                     
+            "return" => TokenType::RETURN,                    
+            "super" => TokenType::SUPER,                     
+            "this" => TokenType::THIS,                      
+            "true" => TokenType::TRUE,                      
+            "var" => TokenType::VAR,                       
+            "while" => TokenType::WHILE,                     
+            a => TokenType::IDENTIFIER(a.to_string())
+        })
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
