@@ -341,6 +341,7 @@ mod tests {
         assert_correctly_scanned_token("var", TokenType::VAR);
         assert_correctly_scanned_token("while", TokenType::WHILE);
     }
+
     #[test]
     fn scan_number_with_function_call() {
         let tokens = scan_tokens("-123.sqrt()");
@@ -352,5 +353,16 @@ mod tests {
         assert_eq!(TokenType::LEFT_PAREN, tokens[4].token_type);
         assert_eq!(TokenType::RIGHT_PAREN, tokens[5].token_type);
         assert_eq!(TokenType::EOF, tokens[6].token_type);
+    }
+
+    #[test]
+    fn scan_file() {
+        let path = Path::new("Cargo.toml");
+        match fs::read_to_string(path) {
+            Ok(file_content) => {
+                let tokens = scan_tokens(&file_content);
+            }
+            Err(why) => assert!(false, "{}", why.description())
+        }
     }
 }
