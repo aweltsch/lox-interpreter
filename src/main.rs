@@ -62,10 +62,14 @@ fn run(s: &str) -> Result<(), &'static str> {
 struct ScannerState<'a> {
     line: i32,
     cur_lexeme: String,
-    char_iter: &'a mut Peekable<Chars<'a>>
+    char_iter: Peekable<Chars<'a>>
 }
 
 impl<'a> ScannerState<'a> {
+    fn new(source: &'a str) -> ScannerState {
+        ScannerState { line: 0, cur_lexeme: String::new(), char_iter: source.chars().peekable() }
+    }
+
     fn has_next(&mut self) -> bool {
         self.char_iter.peek().is_some()
     }
@@ -185,9 +189,7 @@ impl<'a> ScannerState<'a> {
 
 fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut char_iter = source.chars().peekable();
-    let mut scanner_state = ScannerState { line: 0, cur_lexeme: String::new(), char_iter:
-        &mut char_iter };
+    let mut scanner_state = ScannerState::new(source);
 
     while scanner_state.has_next() {
         // start of a new lexeme
