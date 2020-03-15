@@ -66,15 +66,19 @@ struct NPeekable<'a> {
 }
 
 impl<'a> NPeekable<'a> {
+    fn new(s: &str) -> NPeekable {
+        NPeekable { lookup: VecDeque::new(), char_iter: s.chars() }
+    }
+
     fn next(&mut self) -> Option<char> {
         None
     }
 
-    fn peek() -> Option<char> {
+    fn peek(&mut self) -> Option<&'a char> {
         None
     }
 
-    fn n_peek(n: i64) -> Option<char> {
+    fn n_peek(&mut self, n: usize) -> Option<&'a char> {
         None
     }
 }
@@ -384,5 +388,29 @@ mod tests {
             }
             Err(why) => assert!(false, "{}", why.description())
         }
+    }
+
+    #[test]
+    fn n_peekable() {
+        let mut char_iter = NPeekable::new("012345");
+        assert_eq!(char_iter.peek().unwrap(), &'0');
+        assert_eq!(char_iter.n_peek(0).unwrap(), &'0');
+        assert_eq!(char_iter.n_peek(2).unwrap(), &'2');
+
+        assert_eq!(char_iter.next().unwrap(), '0');
+        assert_eq!(char_iter.next().unwrap(), '1');
+        assert_eq!(char_iter.next().unwrap(), '2');
+
+        assert_eq!(char_iter.peek().unwrap(), &'3');
+        assert_eq!(char_iter.n_peek(2).unwrap(), &'4');
+
+        assert_eq!(char_iter.next().unwrap(), '3');
+        assert_eq!(char_iter.next().unwrap(), '4');
+        assert_eq!(char_iter.next().unwrap(), '5');
+        assert_eq!(char_iter.next().is_none(), true);
+        assert_eq!(char_iter.next().is_none(), true);
+
+        assert_eq!(char_iter.peek().is_none(), true);
+        assert_eq!(char_iter.n_peek(2).is_none(), true);
     }
 }
