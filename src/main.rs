@@ -66,6 +66,10 @@ struct ScannerState<'a> {
 }
 
 impl<'a> ScannerState<'a> {
+    fn has_next(&mut self) -> bool {
+        self.char_iter.peek().is_some()
+    }
+
     fn next(&mut self) -> Option<char> {
         match self.char_iter.next() {
             Some(c) => {
@@ -188,7 +192,7 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     // TODO: ugly solution. rethink this!
     // this part looks like bugs...
     // can not _easily_ use source.lines() iterator, because lox supports multiline strings
-    while scanner_state.char_iter.peek().is_some() {
+    while scanner_state.has_next() {
         // start of a new lexeme
         scanner_state.cur_lexeme.clear();
 
