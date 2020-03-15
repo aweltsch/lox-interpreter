@@ -176,6 +176,7 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_number(&mut self) -> Option<TokenType> {
+        self.advance();
         None
     }
 
@@ -255,8 +256,9 @@ mod tests {
 
     fn assert_correctly_scanned_token(input: &str, expected_token_type: TokenType) {
         let result = scan_tokens(input);
-        assert_eq!(2, result.len());
-        assert_eq!(result[0], Token { line: 0, lexeme: input.to_string(), token_type: expected_token_type })
+        assert_eq!(2, result.len(), "{}", input);
+        assert_eq!(result[0], Token { line: 0, lexeme: input.to_string(), token_type:
+            expected_token_type }, "{}", input)
     }
 
     #[test]
@@ -280,10 +282,10 @@ mod tests {
         assert_correctly_scanned_token(">=", TokenType::GREATER_EQUAL);
         assert_correctly_scanned_token("<", TokenType::LESS);
         assert_correctly_scanned_token("<=", TokenType::LESS_EQUAL);
-        assert_correctly_scanned_token("identifier", TokenType::IDENTIFIER("identifier".to_string()));
-        assert_correctly_scanned_token("\"string\"", TokenType::STRING("\"string\"".to_string()));
+        assert_correctly_scanned_token("\"string\"", TokenType::STRING("string".to_string()));
         assert_correctly_scanned_token("1", TokenType::NUMBER(1.0));
         assert_correctly_scanned_token("1.23", TokenType::NUMBER(1.23));
+        assert_correctly_scanned_token("identifier", TokenType::IDENTIFIER("identifier".to_string()));
         assert_correctly_scanned_token("and", TokenType::AND);
         assert_correctly_scanned_token("class", TokenType::CLASS);
         assert_correctly_scanned_token("else", TokenType::ELSE);
