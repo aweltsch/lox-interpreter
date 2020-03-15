@@ -189,9 +189,6 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     let mut scanner_state = ScannerState { line: 0, cur_lexeme: String::new(), char_iter:
         &mut char_iter };
 
-    // TODO: ugly solution. rethink this!
-    // this part looks like bugs...
-    // can not _easily_ use source.lines() iterator, because lox supports multiline strings
     while scanner_state.has_next() {
         // start of a new lexeme
         scanner_state.cur_lexeme.clear();
