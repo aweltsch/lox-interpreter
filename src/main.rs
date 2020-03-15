@@ -124,8 +124,8 @@ impl<'a> ScannerState<'a> {
                     Some(TokenType::GREATER)
                 },
                 '/' => if self.next_char_matches('/') {
-                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
-                        self.char_iter.next();
+                    while self.peek().is_some() && !self.next_char_matches('\n') {
+                        self.next();
                     }
                     None
                 } else {
@@ -151,8 +151,8 @@ impl<'a> ScannerState<'a> {
 
     fn read_string(&mut self) -> Option<TokenType> {
         let mut value = String::new();
-        while self.char_iter.peek().is_some() && !self.next_char_matches('"') {
-            let x = self.char_iter.next()?;
+        while self.peek().is_some() && !self.next_char_matches('"') {
+            let x = self.next()?;
             if (x == '\n') {
                 self.line += 1;
             }
@@ -160,7 +160,7 @@ impl<'a> ScannerState<'a> {
         }
 
         if self.next_char_matches('"') {
-            self.char_iter.next(); // skip "
+            self.next(); // skip "
             Some(TokenType::STRING(value))
         } else {
             error(self.line, "Unterminated string.");
@@ -173,8 +173,8 @@ impl<'a> ScannerState<'a> {
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
-        match self.char_iter.peek() {
-            Some(a) => *a == c,
+        match self.peek() {
+            Some(a) => a == c,
             None => false
         }
     }
