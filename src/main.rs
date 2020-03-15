@@ -211,6 +211,7 @@ fn scan_tokens(source: &str) -> Vec<Token> {
 // TODO: proper fmt::Display trait
 // the literal is bundled in the TokenType
 #[derive(Debug)]
+#[derive(PartialEq)]
 struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -226,6 +227,7 @@ fn report(line: i32, location: &str, message: &str) {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 enum TokenType {
   // Single-character tokens.
   LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
@@ -245,4 +247,58 @@ enum TokenType {
   PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
   EOF
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_correctly_scanned_token(input: &str, expected_token_type: TokenType) {
+        let result = scan_tokens(input);
+        assert_eq!(2, result.len());
+        assert_eq!(result[0], Token { line: 0, lexeme: input.to_string(), token_type: expected_token_type })
+    }
+
+    #[test]
+    fn scan_token() {
+        assert_correctly_scanned_token("(", TokenType::LEFT_PAREN);
+        assert_correctly_scanned_token(")", TokenType::RIGHT_PAREN);
+        assert_correctly_scanned_token("{", TokenType::LEFT_BRACE);
+        assert_correctly_scanned_token("}", TokenType::RIGHT_BRACE);
+        assert_correctly_scanned_token(",", TokenType::COMMA);
+        assert_correctly_scanned_token(".", TokenType::DOT);
+        assert_correctly_scanned_token("-", TokenType::MINUS);
+        assert_correctly_scanned_token("+", TokenType::PLUS);
+        assert_correctly_scanned_token(";", TokenType::SEMICOLON);
+        assert_correctly_scanned_token("/", TokenType::SLASH);
+        assert_correctly_scanned_token("*", TokenType::STAR);
+        assert_correctly_scanned_token("!", TokenType::BANG);
+        assert_correctly_scanned_token("!=", TokenType::BANG_EQUAL);
+        assert_correctly_scanned_token("=", TokenType::EQUAL);
+        assert_correctly_scanned_token("==", TokenType::EQUAL_EQUAL);
+        assert_correctly_scanned_token(">", TokenType::GREATER);
+        assert_correctly_scanned_token(">=", TokenType::GREATER_EQUAL);
+        assert_correctly_scanned_token("<", TokenType::LESS);
+        assert_correctly_scanned_token("<=", TokenType::LESS_EQUAL);
+        assert_correctly_scanned_token("identifier", TokenType::IDENTIFIER("identifier".to_string()));
+        assert_correctly_scanned_token("\"string\"", TokenType::STRING("\"string\"".to_string()));
+        assert_correctly_scanned_token("1", TokenType::NUMBER(1.0));
+        assert_correctly_scanned_token("1.23", TokenType::NUMBER(1.23));
+        assert_correctly_scanned_token("and", TokenType::AND);
+        assert_correctly_scanned_token("class", TokenType::CLASS);
+        assert_correctly_scanned_token("else", TokenType::ELSE);
+        assert_correctly_scanned_token("false", TokenType::FALSE);
+        assert_correctly_scanned_token("for", TokenType::FOR);
+        assert_correctly_scanned_token("fun", TokenType::FUN);
+        assert_correctly_scanned_token("if", TokenType::IF);
+        assert_correctly_scanned_token("nil", TokenType::NIL);
+        assert_correctly_scanned_token("or", TokenType::OR);
+        assert_correctly_scanned_token("print", TokenType::PRINT);
+        assert_correctly_scanned_token("return", TokenType::RETURN);
+        assert_correctly_scanned_token("super", TokenType::SUPER);
+        assert_correctly_scanned_token("this", TokenType::THIS);
+        assert_correctly_scanned_token("true", TokenType::TRUE);
+        assert_correctly_scanned_token("var", TokenType::VAR);
+        assert_correctly_scanned_token("while", TokenType::WHILE);
+    }
 }
