@@ -70,7 +70,7 @@ impl<'a> ScannerState<'a> {
         self.char_iter.peek().is_some()
     }
 
-    fn next(&mut self) -> Option<char> {
+    fn advance(&mut self) -> Option<char> {
         match self.char_iter.next() {
             Some(c) => {
                 self.cur_lexeme.push(c);
@@ -85,10 +85,10 @@ impl<'a> ScannerState<'a> {
         let token_type = if peek.is_digit(10) {
             self.scan_number()
         } else if peek.is_alphabetic() {
-            self.next()?;
+            self.advance()?;
             None
         } else {
-            let c = self.next()?;
+            let c = self.advance()?;
 
             match c {
                 '(' => Some(TokenType::LEFT_PAREN),
@@ -103,32 +103,32 @@ impl<'a> ScannerState<'a> {
                 '*' => Some(TokenType::STAR),
                 // TODO refactor repetetive calls to self.next
                 '!' => if self.next_char_matches('=') {
-                    self.next();
+                    self.advance();
                     Some(TokenType::BANG_EQUAL)
                 } else {
                     Some(TokenType::BANG)
                 },
                 '=' => if self.next_char_matches('=') {
-                    self.next();
+                    self.advance();
                     Some(TokenType::EQUAL_EQUAL)
                 } else {
                     Some(TokenType::EQUAL)
                 },
                 '<' => if self.next_char_matches('=') {
-                    self.next();
+                    self.advance();
                     Some(TokenType::LESS_EQUAL)
                 } else {
                     Some(TokenType::LESS)
                 },
                 '>' => if self.next_char_matches('=') {
-                    self.next();
+                    self.advance();
                     Some(TokenType::GREATER_EQUAL)
                 } else {
                     Some(TokenType::GREATER)
                 },
                 '/' => if self.next_char_matches('/') {
                     while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
-                        self.next();
+                        self.advance();
                     }
                     None
                 } else {
@@ -155,7 +155,7 @@ impl<'a> ScannerState<'a> {
     fn read_string(&mut self) -> Option<TokenType> {
         let mut value = String::new();
         while self.char_iter.peek().is_some() && !self.next_char_matches('"') {
-            let x = self.next()?;
+            let x = self.advance()?;
             if (x == '\n') {
                 self.line += 1;
             }
@@ -163,7 +163,7 @@ impl<'a> ScannerState<'a> {
         }
 
         if self.next_char_matches('"') {
-            self.next(); // skip "
+            self.advance(); // skip "
             Some(TokenType::STRING(value))
         } else {
             error(self.line, "Unterminated string.");
