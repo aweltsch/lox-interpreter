@@ -75,15 +75,9 @@ impl<'a> ScannerState<'a> {
             None => None
         }
     }
-    // TODO ugly
-    fn peek(&mut self) -> Option<char> {
-        match self.char_iter.peek() {
-            Some(c) => Some(*c),
-            None => None
-        }
-    }
+
     fn scan_token(&mut self) -> Option<TokenType> {
-        let peek = self.peek()?;
+        let peek = self.char_iter.peek()?;
         let token_type = if peek.is_digit(10) {
             self.scan_number()
         } else if peek.is_alphabetic() {
@@ -103,28 +97,33 @@ impl<'a> ScannerState<'a> {
                 '+' => Some(TokenType::PLUS),
                 ';' => Some(TokenType::SEMICOLON),
                 '*' => Some(TokenType::STAR),
+                // TODO refactor repetetive calls to self.next
                 '!' => if self.next_char_matches('=') {
+                    self.next();
                     Some(TokenType::BANG_EQUAL)
                 } else {
                     Some(TokenType::BANG)
                 },
                 '=' => if self.next_char_matches('=') {
+                    self.next();
                     Some(TokenType::EQUAL_EQUAL)
                 } else {
                     Some(TokenType::EQUAL)
                 },
                 '<' => if self.next_char_matches('=') {
+                    self.next();
                     Some(TokenType::LESS_EQUAL)
                 } else {
                     Some(TokenType::LESS)
                 },
                 '>' => if self.next_char_matches('=') {
+                    self.next();
                     Some(TokenType::GREATER_EQUAL)
                 } else {
                     Some(TokenType::GREATER)
                 },
                 '/' => if self.next_char_matches('/') {
-                    while self.peek().is_some() && !self.next_char_matches('\n') {
+                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
                         self.next();
                     }
                     None
@@ -151,7 +150,7 @@ impl<'a> ScannerState<'a> {
 
     fn read_string(&mut self) -> Option<TokenType> {
         let mut value = String::new();
-        while self.peek().is_some() && !self.next_char_matches('"') {
+        while self.char_iter.peek().is_some() && !self.next_char_matches('"') {
             let x = self.next()?;
             if (x == '\n') {
                 self.line += 1;
@@ -173,8 +172,8 @@ impl<'a> ScannerState<'a> {
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
-        match self.peek() {
-            Some(a) => a == c,
+        match self.char_iter.peek() {
+            Some(a) => *a == c,
             None => false
         }
     }
@@ -189,7 +188,7 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     // TODO: ugly solution. rethink this!
     // this part looks like bugs...
     // can not _easily_ use source.lines() iterator, because lox supports multiline strings
-    while scanner_state.peek().is_some() {
+    while scanner_state.char_iter.peek().is_some() {
         // start of a new lexeme
         scanner_state.cur_lexeme.clear();
 
