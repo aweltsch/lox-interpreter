@@ -295,8 +295,8 @@ mod tests {
     fn assert_correctly_scanned_token(input: &str, expected_token_type: TokenType) {
         let result = scan_tokens(input);
         assert_eq!(2, result.len(), "{}", input);
-        assert_eq!(result[0], Token { line: 0, lexeme: input.to_string(), token_type:
-            expected_token_type }, "{}", input)
+        assert_eq!(Token { line: 0, lexeme: input.to_string(), token_type:
+            expected_token_type }, result[0], "{}", input)
     }
 
     #[test]
@@ -341,5 +341,16 @@ mod tests {
         assert_correctly_scanned_token("var", TokenType::VAR);
         assert_correctly_scanned_token("while", TokenType::WHILE);
     }
-    // -123.sqrt()
+    #[test]
+    fn scan_number_with_function_call() {
+        let tokens = scan_tokens("-123.sqrt()");
+        assert_eq!(7, tokens.len());
+        assert_eq!(TokenType::MINUS, tokens[0].token_type);
+        assert_eq!(TokenType::NUMBER(123.0), tokens[1].token_type);
+        assert_eq!(TokenType::DOT, tokens[2].token_type);
+        assert_eq!(TokenType::IDENTIFIER("sqrt".to_string()), tokens[3].token_type);
+        assert_eq!(TokenType::LEFT_PAREN, tokens[4].token_type);
+        assert_eq!(TokenType::RIGHT_PAREN, tokens[5].token_type);
+        assert_eq!(TokenType::EOF, tokens[6].token_type);
+    }
 }
