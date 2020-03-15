@@ -176,8 +176,22 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_number(&mut self) -> Option<TokenType> {
-        self.advance();
-        None
+        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_digit(10) {
+            self.advance();
+        }
+
+        // FIXME this is wrong! somehow I have to handle the case 123.sqrt()
+        if self.char_iter.peek().is_some() && *self.char_iter.peek()? == '.' {
+            self.advance();
+        }
+
+        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_digit(10) {
+            self.advance();
+        }
+        match self.cur_lexeme.as_str().parse::<f64>() {
+            Ok(num) => Some(TokenType::NUMBER(num)),
+            Err(_) => None
+        }
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
@@ -303,4 +317,5 @@ mod tests {
         assert_correctly_scanned_token("var", TokenType::VAR);
         assert_correctly_scanned_token("while", TokenType::WHILE);
     }
+    // -123.sqrt()
 }
