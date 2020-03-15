@@ -98,12 +98,12 @@ impl<'a> NPeekable<'a> {
 struct ScannerState<'a> {
     line: i32,
     cur_lexeme: String,
-    char_iter: Peekable<Chars<'a>>
+    char_iter: NPeekable<'a>
 }
 
 impl<'a> ScannerState<'a> {
     fn new(source: &'a str) -> ScannerState {
-        ScannerState { line: 0, cur_lexeme: String::new(), char_iter: source.chars().peekable() }
+        ScannerState { line: 0, cur_lexeme: String::new(), char_iter: NPeekable::new(source) }
     }
 
     fn has_next(&mut self) -> bool {
@@ -214,8 +214,10 @@ impl<'a> ScannerState<'a> {
             self.advance();
         }
 
-        // FIXME this is wrong! somehow I have to handle the case 123.sqrt()
-        if self.char_iter.peek().is_some() && *self.char_iter.peek()? == '.' {
+        if self.char_iter.peek().is_some()
+            && *self.char_iter.peek()? == '.'
+            && self.char_iter.n_peek(2).is_some()
+            && self.char_iter.n_peek(2)?.is_digit(10) {
             self.advance();
         }
 
