@@ -64,6 +64,25 @@ struct ScannerState {
     cur_lexeme: String
 }
 
+impl ScannerState {
+    fn next(&mut self, char_iter: &mut Peekable<Chars>) -> Option<char> {
+        match char_iter.next() {
+            Some(c) => {
+                self.cur_lexeme.push(c);
+                Some(c)
+            }
+            None => None
+        }
+    }
+    // TODO ugly
+    fn peek(char_iter: &mut Peekable<Chars>) -> Option<char> {
+        match char_iter.peek() {
+            Some(c) => Some(*c),
+            None => None
+        }
+    }
+}
+
 fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut scanner_state = ScannerState { line: 1, cur_lexeme: String::new() };
@@ -90,54 +109,65 @@ fn scan_tokens(source: &str) -> Vec<Token> {
 
 
 fn scan_token(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
-    let c = char_iter.next()?;
+    let peek = char_iter.peek()?;
+    let token_type = if peek.is_digit(10) {
+        scan_number(char_iter, scanner_state)
+    } else if peek.is_alphabetic() {
+        scanner_state.next(char_iter)?;
+        None
+    } else {
+        let c = scanner_state.next(char_iter)?;
 
-    let token_type = match c {
-        '(' => Some(TokenType::LEFT_PAREN),
-        ')' => Some(TokenType::RIGHT_PAREN),
-        '{' => Some(TokenType::LEFT_BRACE),
-        '}' => Some(TokenType::RIGHT_BRACE),
-        ',' => Some(TokenType::COMMA),
-        '.' => Some(TokenType::DOT),
-        '-' => Some(TokenType::MINUS),
-        '+' => Some(TokenType::PLUS),
-        ';' => Some(TokenType::SEMICOLON),
-        '*' => Some(TokenType::STAR),
-        '!' => if next_char_matches(char_iter, '=') {
-            Some(TokenType::BANG_EQUAL)
-        } else {
-            Some(TokenType::BANG)
-        },
-        '=' => if next_char_matches(char_iter, '=') {
-            Some(TokenType::EQUAL_EQUAL)
-        } else {
-            Some(TokenType::EQUAL)
-        },
-        '<' => if next_char_matches(char_iter, '=') {
-            Some(TokenType::LESS_EQUAL)
-        } else {
-            Some(TokenType::LESS)
-        },
-        '>' => if next_char_matches(char_iter, '=') {
-            Some(TokenType::GREATER_EQUAL)
-        } else {
-            Some(TokenType::GREATER)
-        },
-        '/' => if next_char_matches(char_iter, '/') {
-            while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
-                char_iter.next();
+        match c {
+            '(' => Some(TokenType::LEFT_PAREN),
+            ')' => Some(TokenType::RIGHT_PAREN),
+            '{' => Some(TokenType::LEFT_BRACE),
+            '}' => Some(TokenType::RIGHT_BRACE),
+            ',' => Some(TokenType::COMMA),
+            '.' => Some(TokenType::DOT),
+            '-' => Some(TokenType::MINUS),
+            '+' => Some(TokenType::PLUS),
+            ';' => Some(TokenType::SEMICOLON),
+            '*' => Some(TokenType::STAR),
+            '!' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::BANG_EQUAL)
+            } else {
+                Some(TokenType::BANG)
+            },
+            '=' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::EQUAL_EQUAL)
+            } else {
+                Some(TokenType::EQUAL)
+            },
+            '<' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::LESS_EQUAL)
+            } else {
+                Some(TokenType::LESS)
+            },
+            '>' => if next_char_matches(char_iter, '=') {
+                Some(TokenType::GREATER_EQUAL)
+            } else {
+                Some(TokenType::GREATER)
+            },
+            '/' => if next_char_matches(char_iter, '/') {
+                while char_iter.peek().is_some() && !next_char_matches(char_iter, '\n') {
+                    char_iter.next();
+                }
+                None
+            } else {
+                Some(TokenType::SLASH)
+            },
+            '\n' => {
+                scanner_state.line += 1;
+                None
+            },
+            '"' => read_string(char_iter, scanner_state),
+            default => {
+                None
             }
-            None
-        } else {
-            Some(TokenType::SLASH)
-        },
-        '\n' => {
-            scanner_state.line += 1;
-            None
-        },
-        '"' => read_string(char_iter, scanner_state),
-        default => None
+        }
     };
+
     if token_type.is_none() {
         error(scanner_state.line, "Unexpected character.");
     }
@@ -161,6 +191,10 @@ fn read_string(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState
         error(scanner_state.line, "Unterminated string.");
         None
     }
+}
+
+fn scan_number(char_iter: &mut Peekable<Chars>, scanner_state: &mut ScannerState) -> Option<TokenType> {
+    None
 }
 
 fn next_char_matches(char_iter: &mut Peekable<Chars>, c: char) -> bool {
