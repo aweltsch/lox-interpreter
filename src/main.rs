@@ -85,64 +85,63 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_token(&mut self) -> Option<TokenType> {
-        let peek = self.char_iter.peek()?;
-        let token_type = if peek.is_digit(10) {
-            self.scan_number()
-        } else if peek.is_alphabetic() {
-            self.scan_identifier()
-        } else {
-            let c = self.advance()?;
+        let c = self.advance()?;
 
-            match c {
-                '(' => Some(TokenType::LEFT_PAREN),
-                ')' => Some(TokenType::RIGHT_PAREN),
-                '{' => Some(TokenType::LEFT_BRACE),
-                '}' => Some(TokenType::RIGHT_BRACE),
-                ',' => Some(TokenType::COMMA),
-                '.' => Some(TokenType::DOT),
-                '-' => Some(TokenType::MINUS),
-                '+' => Some(TokenType::PLUS),
-                ';' => Some(TokenType::SEMICOLON),
-                '*' => Some(TokenType::STAR),
-                // TODO refactor repetetive calls to self.next
-                '!' => if self.next_char_matches('=') {
+        let token_type = match c {
+            '(' => Some(TokenType::LEFT_PAREN),
+            ')' => Some(TokenType::RIGHT_PAREN),
+            '{' => Some(TokenType::LEFT_BRACE),
+            '}' => Some(TokenType::RIGHT_BRACE),
+            ',' => Some(TokenType::COMMA),
+            '.' => Some(TokenType::DOT),
+            '-' => Some(TokenType::MINUS),
+            '+' => Some(TokenType::PLUS),
+            ';' => Some(TokenType::SEMICOLON),
+            '*' => Some(TokenType::STAR),
+            // TODO refactor repetetive calls to self.next
+            '!' => if self.next_char_matches('=') {
+                self.advance();
+                Some(TokenType::BANG_EQUAL)
+            } else {
+                Some(TokenType::BANG)
+            },
+            '=' => if self.next_char_matches('=') {
+                self.advance();
+                Some(TokenType::EQUAL_EQUAL)
+            } else {
+                Some(TokenType::EQUAL)
+            },
+            '<' => if self.next_char_matches('=') {
+                self.advance();
+                Some(TokenType::LESS_EQUAL)
+            } else {
+                Some(TokenType::LESS)
+            },
+            '>' => if self.next_char_matches('=') {
+                self.advance();
+                Some(TokenType::GREATER_EQUAL)
+            } else {
+                Some(TokenType::GREATER)
+            },
+            '/' => if self.next_char_matches('/') {
+                while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
                     self.advance();
-                    Some(TokenType::BANG_EQUAL)
+                }
+                None
+            } else {
+                Some(TokenType::SLASH)
+            },
+            '\n' => {
+                self.line += 1;
+                None
+            },
+            '"' => self.read_string(),
+            default => {
+                if c.is_digit(10) {
+                    self.scan_number()
+                } else if c.is_alphabetic() {
+                    self.scan_identifier()
                 } else {
-                    Some(TokenType::BANG)
-                },
-                '=' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::EQUAL_EQUAL)
-                } else {
-                    Some(TokenType::EQUAL)
-                },
-                '<' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::LESS_EQUAL)
-                } else {
-                    Some(TokenType::LESS)
-                },
-                '>' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::GREATER_EQUAL)
-                } else {
-                    Some(TokenType::GREATER)
-                },
-                '/' => if self.next_char_matches('/') {
-                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
-                        self.advance();
-                    }
-                    None
-                } else {
-                    Some(TokenType::SLASH)
-                },
-                '\n' => {
-                    self.line += 1;
-                    None
-                },
-                '"' => self.read_string(),
-                default => {
                     None
                 }
             }
