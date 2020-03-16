@@ -1,12 +1,5 @@
 use std::env;
-use std::error::Error;
-use std::fs;
 use std::path::Path;
-use std::io;
-use std::iter::Peekable;
-use std::str::Chars;
-use std::option::Option;
-use std::collections::VecDeque;
 use rlox::run_file;
 use rlox::run_prompt;
 
