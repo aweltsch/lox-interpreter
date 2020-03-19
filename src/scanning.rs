@@ -1,10 +1,8 @@
-use std::env;
-use std::error::Error;
+use std::option::Option;
 use std::fs;
 use std::path::Path;
-use std::io;
-use std::option::Option;
 use crate::n_peekable::NPeekable;
+use std::error::Error;
 
 struct ScannerState<'a> {
     line: i32,
@@ -201,9 +199,9 @@ pub fn scan_tokens(source: &str) -> Vec<Token> {
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    line: i32
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub line: i32
 }
 
 fn error(line: i32, message: &str) {

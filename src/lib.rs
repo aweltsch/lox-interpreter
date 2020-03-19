@@ -1,15 +1,13 @@
-use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::io;
-use std::option::Option;
 
-use self::n_peekable::NPeekable;
 use self::scanning::scan_tokens;
 
 mod n_peekable;
 mod scanning;
+mod expr;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {
