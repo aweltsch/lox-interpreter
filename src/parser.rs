@@ -50,13 +50,21 @@ fn next_token_matches(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool 
 
 fn primary(tokens: &mut VecDeque<Token>) -> Expr {
     if let Some(token) = tokens.get(0) {
-        match token.token_type {
-            _ => Expr::LITERAL(Literal::NIL)
+        if let Some(result) = token.token_type.to_literal() {
+            tokens.pop_front(); // consume
+            return Expr::LITERAL(result);
+        } else if let TokenType::LEFT_PAREN = token.token_type {
+            tokens.pop_front(); // consume
+            let expr = expression(tokens);
+
+            if let Some(other_token) = tokens.pop_front() {
+                if other_token.token_type != TokenType::RIGHT_PAREN {
+                    panic!("Expect ')' after expression.");
+                }
+            }
         }
-    } else {
-        // FIXME error handling
-        Expr::LITERAL(Literal::NIL)
     }
+    Expr::LITERAL(Literal::NIL)
 }
 
 #[cfg(test)]
