@@ -56,7 +56,15 @@ fn addition(tokens: &mut VecDeque<Token>) -> Expr {
 }
 
 fn multiplication(tokens: &mut VecDeque<Token>) -> Expr {
-    Expr::LITERAL(Literal::NIL)
+    let mut expr = unary(tokens);
+
+    while next_token_matches(tokens, &[TokenType::STAR, TokenType::SLASH]) {
+        if let Some(operator) = tokens.pop_front() {
+            let right = unary(tokens);
+            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+        }
+    }
+    expr
 }
 
 fn unary(tokens: &mut VecDeque<Token>) -> Expr {
