@@ -5,28 +5,30 @@ use crate::scanning::Token;
 
 // FIXME is this an anti-pattern?
 // I do not want unnamed parameters for the enum parameters...
-enum Expr {
+pub enum Expr {
     BINARY(Binary),
     GROUPING(Grouping),
     LITERAL(Literal),
     UNARY(Unary)
 }
 
-struct Binary {
-    left: Box<Expr>,
-    operator: Token,
-    right: Box<Expr>
+pub struct Binary {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>
 }
 
 
-struct Grouping {
-    expression: Box<Expr>
+pub struct Grouping {
+    pub expression: Box<Expr>
 }
 
-enum Literal {
+pub enum Literal {
     IDENTIFIER(String),
     STRING(String),
-    NUMBER(f64)
+    NUMBER(f64),
+    BOOLEAN(bool),
+    NIL
 }
 
 impl Literal {
@@ -34,12 +36,14 @@ impl Literal {
         match self {
             Literal::IDENTIFIER(s) => format!("{}", s),
             Literal::STRING(s) => format!("\"{}\"", s),
-            Literal::NUMBER(n) => format!("{}", n)
+            Literal::NUMBER(n) => format!("{}", n),
+            Literal::BOOLEAN(b) => format!("{}", b),
+            Literal::NIL => "nil".to_string()
         }
     }
 }
 
-struct Unary {
+pub struct Unary {
     operator: Token,
     right: Box<Expr>
 }
@@ -80,8 +84,15 @@ impl Expr {
 }
 
 impl TokenType {
-    fn to_literal(self) -> Option<Literal> {
-        None
+    pub fn to_literal(self) -> Option<Literal> {
+        match self {
+            TokenType::TRUE => Some(Literal::BOOLEAN(true)),
+            TokenType::FALSE => Some(Literal::BOOLEAN(false)),
+            TokenType::NUMBER(n) => Some(Literal::NUMBER(n)),
+            TokenType::STRING(s) => Some(Literal::STRING(s)),
+            TokenType::NIL => Some(Literal::NIL),
+            _ => None
+        }
     }
 }
 
