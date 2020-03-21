@@ -7,6 +7,7 @@ use crate::expr::Expr;
 use crate::expr::Binary;
 use crate::expr::Grouping;
 use crate::expr::Literal;
+use crate::expr::Unary;
 
 // returns AST
 // consumes tokens!
@@ -68,7 +69,13 @@ fn multiplication(tokens: &mut VecDeque<Token>) -> Expr {
 }
 
 fn unary(tokens: &mut VecDeque<Token>) -> Expr {
-    Expr::LITERAL(Literal::NIL)
+    if next_token_matches(tokens, &[TokenType::BANG, TokenType::MINUS]) {
+        if let Some(operator) = tokens.pop_front() {
+            let right = unary(tokens);
+            return Expr::UNARY(Unary {operator: operator, right: Box::new(right)})
+        }
+    }
+    primary(tokens)
 }
 
 // FIXME this will not work for TokenType with values i.e. TokenType::NUMBER

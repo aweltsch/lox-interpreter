@@ -44,8 +44,8 @@ impl Literal {
 }
 
 pub struct Unary {
-    operator: Token,
-    right: Box<Expr>
+    pub operator: Token,
+    pub right: Box<Expr>
 }
 
 impl Expr {
@@ -84,12 +84,12 @@ impl Expr {
 }
 
 impl TokenType {
-    pub fn to_literal(self) -> Option<Literal> {
+    pub fn to_literal(&self) -> Option<Literal> {
         match self {
             TokenType::TRUE => Some(Literal::BOOLEAN(true)),
             TokenType::FALSE => Some(Literal::BOOLEAN(false)),
-            TokenType::NUMBER(n) => Some(Literal::NUMBER(n)),
-            TokenType::STRING(s) => Some(Literal::STRING(s)),
+            TokenType::NUMBER(n) => Some(Literal::NUMBER(*n)),
+            TokenType::STRING(s) => Some(Literal::STRING(s.clone())),
             TokenType::NIL => Some(Literal::NIL),
             _ => None
         }
