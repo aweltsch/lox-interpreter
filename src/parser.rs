@@ -44,7 +44,15 @@ fn comparison(tokens: &mut VecDeque<Token>) -> Expr {
 }
 
 fn addition(tokens: &mut VecDeque<Token>) -> Expr {
-    Expr::LITERAL(Literal::NIL)
+    let mut expr = multiplication(tokens);
+
+    while next_token_matches(tokens, &[TokenType::PLUS, TokenType::MINUS]) {
+        if let Some(operator) = tokens.pop_front() {
+            let right = multiplication(tokens);
+            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+        }
+    }
+    expr
 }
 
 fn multiplication(tokens: &mut VecDeque<Token>) -> Expr {
