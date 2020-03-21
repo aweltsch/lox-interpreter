@@ -8,6 +8,7 @@ use self::scanning::scan_tokens;
 mod n_peekable;
 mod scanning;
 mod expr;
+mod parser;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {
