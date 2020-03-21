@@ -22,7 +22,6 @@ fn expression(tokens: &mut VecDeque<Token>) -> Expr {
 fn equality(tokens: &mut VecDeque<Token>) -> Expr {
     let mut expr = comparison(tokens);
 
-    // FIXME
     while next_token_matches(tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) { // tokens[0] == BANG_EQUAL || EQUAL_EQUAL
         if let Some(operator) = tokens.pop_front() {
             let right = comparison(tokens);
@@ -34,7 +33,26 @@ fn equality(tokens: &mut VecDeque<Token>) -> Expr {
 }
 
 fn comparison(tokens: &mut VecDeque<Token>) -> Expr {
-    Expr::LITERAL(Literal::NUMBER(0.0))
+    let mut expr = addition(tokens);
+    while next_token_matches(tokens, &[TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL]) {
+        if let Some(operator) = tokens.pop_front() {
+            let right = addition(tokens);
+            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+        }
+    }
+    expr
+}
+
+fn addition(tokens: &mut VecDeque<Token>) -> Expr {
+    Expr::LITERAL(Literal::NIL)
+}
+
+fn multiplication(tokens: &mut VecDeque<Token>) -> Expr {
+    Expr::LITERAL(Literal::NIL)
+}
+
+fn unary(tokens: &mut VecDeque<Token>) -> Expr {
+    Expr::LITERAL(Literal::NIL)
 }
 
 // FIXME this will not work for TokenType with values i.e. TokenType::NUMBER
