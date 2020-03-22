@@ -29,24 +29,13 @@ impl<'a> ScannerState<'a> {
         }
     }
 
-    fn skip(&mut self) -> Option<char> {
-        match self.char_iter.next() {
-            Some(c) => {
-                Some(c)
-            }
-            None => None
-        }
-    }
-
-    fn skip_whitespace(&mut  self) -> Option<()> {
-        while self.char_iter.peek()?.is_whitespace() {
-            let c = self.skip()?;
+    fn skip_whitespace(&mut  self) {
+        while self.char_iter.peek().map_or(false, |c| c.is_whitespace()) {
+            let c = self.char_iter.next().unwrap();
             if c == '\n' {
                 self.line += 1;
             }
         }
-        // TODO refactor
-        Some(())
     }
 
     fn scan_token(&mut self) -> Option<TokenType> {
@@ -121,9 +110,9 @@ impl<'a> ScannerState<'a> {
 
     fn read_string(&mut self) -> Option<TokenType> {
         let mut value = String::new();
-        while self.char_iter.peek().is_some() && !self.next_char_matches('"') {
+        while !self.next_char_matches('"') {
             let x = self.advance()?;
-            if (x == '\n') {
+            if x == '\n' {
                 self.line += 1;
             }
             value.push(x);
@@ -139,18 +128,16 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_number(&mut self) -> Option<TokenType> {
-        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_digit(10) {
+        while self.char_iter.peek().map_or(false, |c| c.is_digit(10)) {
             self.advance();
         }
 
-        if self.char_iter.peek().is_some()
-            && *self.char_iter.peek()? == '.'
-            && self.char_iter.n_peek(2).is_some()
-            && self.char_iter.n_peek(2)?.is_digit(10) {
+        if self.next_char_matches('.')
+            && self.char_iter.n_peek(2).map_or(false, |c| c.is_digit(10)) {
             self.advance();
         }
 
-        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_digit(10) {
+        while self.char_iter.peek().map_or(false, |c| c.is_digit(10)) {
             self.advance();
         }
 
@@ -161,7 +148,7 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_identifier(&mut self) -> Option<TokenType> {
-        while self.char_iter.peek().is_some() && self.char_iter.peek()?.is_alphanumeric() {
+        while self.char_iter.peek().map_or(false, |c| c.is_alphanumeric()) {
             self.advance();
         }
         Some(match self.cur_lexeme.as_str() {
@@ -186,10 +173,7 @@ impl<'a> ScannerState<'a> {
     }
 
     fn next_char_matches(&mut self, c: char) -> bool {
-        match self.char_iter.peek() {
-            Some(a) => *a == c,
-            None => false
-        }
+        self.char_iter.peek().map_or(false, |a| *a == c)
     }
 }
 
