@@ -1,0 +1,6 @@
+class SomeClass {
+  someMethod(someParam) {
+    var someVar = someParam + "text'!";
+    return someVar;
+  }
+}

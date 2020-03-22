@@ -29,7 +29,28 @@ impl<'a> ScannerState<'a> {
         }
     }
 
+    fn skip(&mut self) -> Option<char> {
+        match self.char_iter.next() {
+            Some(c) => {
+                Some(c)
+            }
+            None => None
+        }
+    }
+
+    fn skip_whitespace(&mut  self) -> Option<()> {
+        while self.char_iter.peek()?.is_whitespace() {
+            let c = self.skip()?;
+            if c == '\n' {
+                self.line += 1;
+            }
+        }
+        // TODO refactor
+        Some(())
+    }
+
     fn scan_token(&mut self) -> Option<TokenType> {
+        self.skip_whitespace();
         let c = self.advance()?;
 
         let token_type = match c {
@@ -43,7 +64,7 @@ impl<'a> ScannerState<'a> {
             '+' => Some(TokenType::PLUS),
             ';' => Some(TokenType::SEMICOLON),
             '*' => Some(TokenType::STAR),
-            // TODO refactor repetetive calls to self.next
+            // TODO refactor repetetive calls to self.advance
             '!' => if self.next_char_matches('=') {
                 self.advance();
                 Some(TokenType::BANG_EQUAL)
@@ -76,10 +97,6 @@ impl<'a> ScannerState<'a> {
             } else {
                 Some(TokenType::SLASH)
             },
-            '\n' => {
-                self.line += 1;
-                None
-            },
             '"' => self.read_string(),
             default => {
                 if c.is_digit(10) {
@@ -87,12 +104,15 @@ impl<'a> ScannerState<'a> {
                 } else if c.is_alphabetic() {
                     self.scan_identifier()
                 } else {
+                    if c.is_whitespace() {
+                        panic!("Should not find any more whitespace, should have been skipped already!");
+                    }
                     None
                 }
             }
         };
 
-        if token_type.is_none() {
+        if token_type.is_none() && c != '\n' {
             error(self.line, "Unexpected character.");
         }
         token_type
@@ -303,11 +323,79 @@ mod tests {
     }
 
     #[test]
-    fn scan_file() {
-        let path = Path::new("Cargo.toml");
+    fn lox_files_are_scanned_correctly() {
+        scanned_file_matches_token_types("test_data/example-0.lox",
+                                    vec![TokenType::FUN,
+                                    TokenType::IDENTIFIER("someFun".to_string()),
+                                    TokenType::LEFT_PAREN,
+                                    TokenType::IDENTIFIER("someParam".to_string()),
+                                    TokenType::RIGHT_PAREN,
+                                    TokenType::LEFT_BRACE,
+                                    TokenType::RETURN,
+                                    TokenType::NUMBER(0.0),
+                                    TokenType::SEMICOLON,
+                                    TokenType::RIGHT_BRACE,
+                                    TokenType::EOF]
+                                    );
+        scanned_file_matches_token_types("test_data/example-1.lox",
+                                    vec![TokenType::FOR,
+                                    TokenType::LEFT_PAREN,
+                                    TokenType::VAR,
+                                    TokenType::IDENTIFIER("a".to_string()),
+                                    TokenType::EQUAL,
+                                    TokenType::NUMBER(1.0),
+                                    TokenType::SEMICOLON,
+                                    TokenType::IDENTIFIER("a".to_string()),
+                                    TokenType::LESS,
+                                    TokenType::NUMBER(10.0),
+                                    TokenType::SEMICOLON,
+                                    TokenType::IDENTIFIER("a".to_string()),
+                                    TokenType::EQUAL,
+                                    TokenType::IDENTIFIER("a".to_string()),
+                                    TokenType::PLUS,
+                                    TokenType::NUMBER(1.0),
+                                    TokenType::RIGHT_PAREN,
+                                    TokenType::LEFT_BRACE,
+                                    TokenType::PRINT,
+                                    TokenType::IDENTIFIER("a".to_string()),
+                                    TokenType::SEMICOLON,
+                                    TokenType::RIGHT_BRACE,
+                                    TokenType::EOF]
+                                    );
+        scanned_file_matches_token_types("test_data/example-2.lox",
+                                    vec![TokenType::CLASS,
+                                    TokenType::IDENTIFIER("SomeClass".to_string()),
+                                    TokenType::LEFT_BRACE,
+                                    TokenType::IDENTIFIER("someMethod".to_string()),
+                                    TokenType::LEFT_PAREN,
+                                    TokenType::IDENTIFIER("someParam".to_string()),
+                                    TokenType::RIGHT_PAREN,
+                                    TokenType::LEFT_BRACE,
+                                    TokenType::VAR,
+                                    TokenType::IDENTIFIER("someVar".to_string()),
+                                    TokenType::EQUAL,
+                                    TokenType::IDENTIFIER("someParam".to_string()),
+                                    TokenType::PLUS,
+                                    TokenType::STRING("text'!".to_string()),
+                                    TokenType::SEMICOLON,
+                                    TokenType::RETURN,
+                                    TokenType::IDENTIFIER("someVar".to_string()),
+                                    TokenType::SEMICOLON,
+                                    TokenType::RIGHT_BRACE,
+                                    TokenType::RIGHT_BRACE,
+                                    TokenType::EOF]
+                                    );
+    }
+
+    fn scanned_file_matches_token_types(fileName: &str, expected: Vec<TokenType>) {
+        let path = Path::new(fileName);
         match fs::read_to_string(path) {
             Ok(file_content) => {
                 let tokens = scan_tokens(&file_content);
+                assert_eq!(tokens.len(), expected.len());
+                for (token, expected_type) in tokens.iter().zip(expected.iter()) {
+                    assert_eq!(token.token_type, *expected_type);
+                }
             }
             Err(why) => assert!(false, "{}", why.description())
         }
