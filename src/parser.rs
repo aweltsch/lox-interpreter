@@ -13,7 +13,13 @@ use crate::expr::Unary;
 // returns AST
 // consumes tokens!
 fn parse(mut tokens: Vec<Token>) -> Option<Expr> {
-    expression(&mut VecDeque::from(tokens)).ok()
+    match expression(&mut VecDeque::from(tokens)) {
+        Ok(expr) => Some(expr),
+        Err(why) => {
+            eprintln!("{}", why);
+            None
+        }
+    }
 }
 
 // TODO consider iterator...
