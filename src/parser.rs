@@ -1,4 +1,3 @@
-use std::iter::Peekable;
 use std::collections::VecDeque;
 
 use crate::scanning::Token;
@@ -15,7 +14,7 @@ fn parse(mut tokens: Vec<Token>) -> Expr {
     expression(&mut VecDeque::from(tokens))
 }
 
-// FIXME change to vecdeque or peekable iterator!
+// TODO consider iterator...
 fn expression(tokens: &mut VecDeque<Token>) -> Expr {
     equality(tokens)
 }
@@ -23,7 +22,7 @@ fn expression(tokens: &mut VecDeque<Token>) -> Expr {
 fn equality(tokens: &mut VecDeque<Token>) -> Expr {
     let mut expr = comparison(tokens);
 
-    while next_token_matches(tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) { // tokens[0] == BANG_EQUAL || EQUAL_EQUAL
+    while next_token_matches(tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
         if let Some(operator) = tokens.pop_front() {
             let right = comparison(tokens);
             expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
@@ -110,7 +109,19 @@ fn primary(tokens: &mut VecDeque<Token>) -> Expr {
 
 #[cfg(test)]
 mod tests {
-    fn what() {
-        assert_eq!(false, true);
+    use super::*;
+    use crate::scanning::scan_tokens;
+
+    #[test]
+    fn that_ast_is_correct() {
+        ast_matches("123 + 17", "(+ 123 17)");
+        ast_matches("1 + 2 * 3 == 7", "(== (+ 1 (* 2 3)) 7)");
+    }
+
+    fn ast_matches(input: &str, expected: &str) {
+        let mut tokens = scan_tokens(input);
+        let expr = parse(tokens);
+        let calculated_ast = expr.print_ast();
+        assert_eq!(expected, calculated_ast);
     }
 }
