@@ -40,68 +40,70 @@ impl<'a> ScannerState<'a> {
 
     fn scan_token(&mut self) -> Option<TokenType> {
         self.skip_whitespace();
-        let c = self.advance()?;
 
-        let token_type = match c {
-            '(' => Some(TokenType::LEFT_PAREN),
-            ')' => Some(TokenType::RIGHT_PAREN),
-            '{' => Some(TokenType::LEFT_BRACE),
-            '}' => Some(TokenType::RIGHT_BRACE),
-            ',' => Some(TokenType::COMMA),
-            '.' => Some(TokenType::DOT),
-            '-' => Some(TokenType::MINUS),
-            '+' => Some(TokenType::PLUS),
-            ';' => Some(TokenType::SEMICOLON),
-            '*' => Some(TokenType::STAR),
-            // TODO refactor repetetive calls to self.advance
-            '!' => if self.next_char_matches('=') {
-                self.advance();
-                Some(TokenType::BANG_EQUAL)
-            } else {
-                Some(TokenType::BANG)
-            },
-            '=' => if self.next_char_matches('=') {
-                self.advance();
-                Some(TokenType::EQUAL_EQUAL)
-            } else {
-                Some(TokenType::EQUAL)
-            },
-            '<' => if self.next_char_matches('=') {
-                self.advance();
-                Some(TokenType::LESS_EQUAL)
-            } else {
-                Some(TokenType::LESS)
-            },
-            '>' => if self.next_char_matches('=') {
-                self.advance();
-                Some(TokenType::GREATER_EQUAL)
-            } else {
-                Some(TokenType::GREATER)
-            },
-            '/' => if self.next_char_matches('/') {
-                while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
+        let a = self.char_iter.peek()?;
+        assert!(!a.is_whitespace());
+
+        let token_type = if a.is_digit(10) {
+            self.scan_number()
+        } else if a.is_alphabetic() {
+            self.scan_identifier()
+        } else if *a == '"' {
+            self.read_string()
+        } else {
+            let c = self.advance()?;
+            match c {
+                '(' => Some(TokenType::LEFT_PAREN),
+                ')' => Some(TokenType::RIGHT_PAREN),
+                '{' => Some(TokenType::LEFT_BRACE),
+                '}' => Some(TokenType::RIGHT_BRACE),
+                ',' => Some(TokenType::COMMA),
+                '.' => Some(TokenType::DOT),
+                '-' => Some(TokenType::MINUS),
+                '+' => Some(TokenType::PLUS),
+                ';' => Some(TokenType::SEMICOLON),
+                '*' => Some(TokenType::STAR),
+                // TODO refactor repetetive calls to self.advance
+                '!' => if self.next_char_matches('=') {
                     self.advance();
-                }
-                None
-            } else {
-                Some(TokenType::SLASH)
-            },
-            '"' => self.read_string(),
-            default => {
-                if c.is_digit(10) {
-                    self.scan_number()
-                } else if c.is_alphabetic() {
-                    self.scan_identifier()
+                    Some(TokenType::BANG_EQUAL)
                 } else {
-                    if c.is_whitespace() {
-                        panic!("Should not find any more whitespace, should have been skipped already!");
+                    Some(TokenType::BANG)
+                },
+                '=' => if self.next_char_matches('=') {
+                    self.advance();
+                    Some(TokenType::EQUAL_EQUAL)
+                } else {
+                    Some(TokenType::EQUAL)
+                },
+                '<' => if self.next_char_matches('=') {
+                    self.advance();
+                    Some(TokenType::LESS_EQUAL)
+                } else {
+                    Some(TokenType::LESS)
+                },
+                '>' => if self.next_char_matches('=') {
+                    self.advance();
+                    Some(TokenType::GREATER_EQUAL)
+                } else {
+                    Some(TokenType::GREATER)
+                },
+                '/' => if self.next_char_matches('/') {
+                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
+                        self.advance();
                     }
+                    None
+                } else {
+                    Some(TokenType::SLASH)
+                },
+                default => {
                     None
                 }
             }
         };
 
-        if token_type.is_none() && c != '\n' {
+
+        if token_type.is_none() {
             error(self.line, "Unexpected character.");
         }
         token_type
@@ -109,6 +111,9 @@ impl<'a> ScannerState<'a> {
 
 
     fn read_string(&mut self) -> Option<TokenType> {
+        assert!(self.next_char_matches('"'));
+        self.advance();
+
         let mut value = String::new();
         while !self.next_char_matches('"') {
             let x = self.advance()?;
@@ -128,6 +133,7 @@ impl<'a> ScannerState<'a> {
     }
 
     fn scan_number(&mut self) -> Option<TokenType> {
+        assert!(self.char_iter.peek().map_or(false, |c| c.is_digit(10)));
         while self.char_iter.peek().map_or(false, |c| c.is_digit(10)) {
             self.advance();
         }
