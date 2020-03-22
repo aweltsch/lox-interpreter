@@ -119,6 +119,27 @@ fn next_token_matches(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool 
     false
 }
 
+fn synchronize(tokens: &mut VecDeque<Token>) {
+    while tokens.len() > 0 {
+        if next_token_matches(tokens,
+                              &[TokenType::CLASS,
+                              TokenType::FUN,
+                              TokenType::VAR,
+                              TokenType::FOR,
+                              TokenType::IF,
+                              TokenType::WHILE,
+                              TokenType::PRINT,
+                              TokenType::RETURN]) {
+            return;
+        }
+
+        let token = tokens.pop_front();
+        if token.map_or(false, |t| t.token_type == TokenType::SEMICOLON) {
+            return;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,5 +156,29 @@ mod tests {
         let expr = parse(tokens);
         let calculated_ast = expr.unwrap().print_ast();
         assert_eq!(calculated_ast, expected);
+    }
+
+    #[test]
+    fn report_errors() {
+        let strings = &["(123 + 456", "12 +", "(123 <= 123) == (233 * 3) =="];
+        for input in strings {
+            let mut tokens = scan_tokens(&input);
+            let expr = parse(tokens);
+            assert!(expr.is_none(), "No error for string: {}", input);
+        }
+    }
+
+    #[test]
+    // FIXME this implementation is convenient, but integrates the scan_tokens component...
+    fn synchronize_discards_elements() {
+        let original = &["asdf; 123 + 345", "fun something()", "what fun something()", "; class what()", "a statement();"];
+        let expected = &["123 + 345", "fun something()", "fun something()", "class what()", ""];
+        for (original, expected) in original.iter().zip(expected.iter()) {
+            let mut original_tokens = VecDeque::from(scan_tokens(&original));
+            let expected_tokens = VecDeque::from(scan_tokens(&expected));
+
+            let synchronized_tokens = synchronize(&mut original_tokens);
+            assert_eq!(original_tokens, expected_tokens, "Tokens don't match for: {}", original);
+        }
     }
 }
