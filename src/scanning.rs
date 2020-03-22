@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::option::Option;
 use std::fs;
 use std::path::Path;
@@ -63,31 +64,6 @@ impl<'a> ScannerState<'a> {
                 '+' => Some(TokenType::PLUS),
                 ';' => Some(TokenType::SEMICOLON),
                 '*' => Some(TokenType::STAR),
-                // TODO refactor repetetive calls to self.advance
-                '!' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::BANG_EQUAL)
-                } else {
-                    Some(TokenType::BANG)
-                },
-                '=' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::EQUAL_EQUAL)
-                } else {
-                    Some(TokenType::EQUAL)
-                },
-                '<' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::LESS_EQUAL)
-                } else {
-                    Some(TokenType::LESS)
-                },
-                '>' => if self.next_char_matches('=') {
-                    self.advance();
-                    Some(TokenType::GREATER_EQUAL)
-                } else {
-                    Some(TokenType::GREATER)
-                },
                 '/' => if self.next_char_matches('/') {
                     while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
                         self.advance();
@@ -97,7 +73,24 @@ impl<'a> ScannerState<'a> {
                     Some(TokenType::SLASH)
                 },
                 default => {
-                    None
+                    if self.next_char_matches('=') {
+                        self.advance();
+                        match c {
+                            '!' => Some(TokenType::BANG_EQUAL),
+                            '=' => Some(TokenType::EQUAL_EQUAL),
+                            '<' => Some(TokenType::LESS_EQUAL),
+                            '>' => Some(TokenType::GREATER_EQUAL),
+                            default => None
+                        }
+                    } else {
+                        match c {
+                            '!' => Some(TokenType::BANG),
+                            '=' => Some(TokenType::EQUAL),
+                            '<' => Some(TokenType::LESS),
+                            '>' => Some(TokenType::GREATER),
+                            default => None
+                        }
+                    }
                 }
             }
         };
@@ -140,8 +133,8 @@ impl<'a> ScannerState<'a> {
 
         if self.next_char_matches('.')
             && self.char_iter.n_peek(2).map_or(false, |c| c.is_digit(10)) {
-            self.advance();
-        }
+                self.advance();
+            }
 
         while self.char_iter.peek().map_or(false, |c| c.is_digit(10)) {
             self.advance();
@@ -225,24 +218,24 @@ fn report(line: i32, location: &str, message: &str) {
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum TokenType {
-  // Single-character tokens.
-  LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-  COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
+    // Single-character tokens.
+    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
+    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
 
-  // One or two character tokens.
-  BANG, BANG_EQUAL,
-  EQUAL, EQUAL_EQUAL,
-  GREATER, GREATER_EQUAL,
-  LESS, LESS_EQUAL,
+    // One or two character tokens.
+    BANG, BANG_EQUAL,
+    EQUAL, EQUAL_EQUAL,
+    GREATER, GREATER_EQUAL,
+    LESS, LESS_EQUAL,
 
-  // Literals.
-  IDENTIFIER(String), STRING(String), NUMBER(f64),
+    // Literals.
+    IDENTIFIER(String), STRING(String), NUMBER(f64),
 
-  // Keywords.
-  AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
-  PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
+    // Keywords.
+    AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
+    PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
-  EOF
+    EOF
 }
 
 #[cfg(test)]
@@ -315,66 +308,66 @@ mod tests {
     #[test]
     fn lox_files_are_scanned_correctly() {
         scanned_file_matches_token_types("test_data/example-0.lox",
-                                    vec![TokenType::FUN,
-                                    TokenType::IDENTIFIER("someFun".to_string()),
-                                    TokenType::LEFT_PAREN,
-                                    TokenType::IDENTIFIER("someParam".to_string()),
-                                    TokenType::RIGHT_PAREN,
-                                    TokenType::LEFT_BRACE,
-                                    TokenType::RETURN,
-                                    TokenType::NUMBER(0.0),
-                                    TokenType::SEMICOLON,
-                                    TokenType::RIGHT_BRACE,
-                                    TokenType::EOF]
-                                    );
+                                         vec![TokenType::FUN,
+                                         TokenType::IDENTIFIER("someFun".to_string()),
+                                         TokenType::LEFT_PAREN,
+                                         TokenType::IDENTIFIER("someParam".to_string()),
+                                         TokenType::RIGHT_PAREN,
+                                         TokenType::LEFT_BRACE,
+                                         TokenType::RETURN,
+                                         TokenType::NUMBER(0.0),
+                                         TokenType::SEMICOLON,
+                                         TokenType::RIGHT_BRACE,
+                                         TokenType::EOF]
+                                        );
         scanned_file_matches_token_types("test_data/example-1.lox",
-                                    vec![TokenType::FOR,
-                                    TokenType::LEFT_PAREN,
-                                    TokenType::VAR,
-                                    TokenType::IDENTIFIER("a".to_string()),
-                                    TokenType::EQUAL,
-                                    TokenType::NUMBER(1.0),
-                                    TokenType::SEMICOLON,
-                                    TokenType::IDENTIFIER("a".to_string()),
-                                    TokenType::LESS,
-                                    TokenType::NUMBER(10.0),
-                                    TokenType::SEMICOLON,
-                                    TokenType::IDENTIFIER("a".to_string()),
-                                    TokenType::EQUAL,
-                                    TokenType::IDENTIFIER("a".to_string()),
-                                    TokenType::PLUS,
-                                    TokenType::NUMBER(1.0),
-                                    TokenType::RIGHT_PAREN,
-                                    TokenType::LEFT_BRACE,
-                                    TokenType::PRINT,
-                                    TokenType::IDENTIFIER("a".to_string()),
-                                    TokenType::SEMICOLON,
-                                    TokenType::RIGHT_BRACE,
-                                    TokenType::EOF]
-                                    );
+                                         vec![TokenType::FOR,
+                                         TokenType::LEFT_PAREN,
+                                         TokenType::VAR,
+                                         TokenType::IDENTIFIER("a".to_string()),
+                                         TokenType::EQUAL,
+                                         TokenType::NUMBER(1.0),
+                                         TokenType::SEMICOLON,
+                                         TokenType::IDENTIFIER("a".to_string()),
+                                         TokenType::LESS,
+                                         TokenType::NUMBER(10.0),
+                                         TokenType::SEMICOLON,
+                                         TokenType::IDENTIFIER("a".to_string()),
+                                         TokenType::EQUAL,
+                                         TokenType::IDENTIFIER("a".to_string()),
+                                         TokenType::PLUS,
+                                         TokenType::NUMBER(1.0),
+                                         TokenType::RIGHT_PAREN,
+                                         TokenType::LEFT_BRACE,
+                                         TokenType::PRINT,
+                                         TokenType::IDENTIFIER("a".to_string()),
+                                         TokenType::SEMICOLON,
+                                         TokenType::RIGHT_BRACE,
+                                         TokenType::EOF]
+                                             );
         scanned_file_matches_token_types("test_data/example-2.lox",
-                                    vec![TokenType::CLASS,
-                                    TokenType::IDENTIFIER("SomeClass".to_string()),
-                                    TokenType::LEFT_BRACE,
-                                    TokenType::IDENTIFIER("someMethod".to_string()),
-                                    TokenType::LEFT_PAREN,
-                                    TokenType::IDENTIFIER("someParam".to_string()),
-                                    TokenType::RIGHT_PAREN,
-                                    TokenType::LEFT_BRACE,
-                                    TokenType::VAR,
-                                    TokenType::IDENTIFIER("someVar".to_string()),
-                                    TokenType::EQUAL,
-                                    TokenType::IDENTIFIER("someParam".to_string()),
-                                    TokenType::PLUS,
-                                    TokenType::STRING("text'!".to_string()),
-                                    TokenType::SEMICOLON,
-                                    TokenType::RETURN,
-                                    TokenType::IDENTIFIER("someVar".to_string()),
-                                    TokenType::SEMICOLON,
-                                    TokenType::RIGHT_BRACE,
-                                    TokenType::RIGHT_BRACE,
-                                    TokenType::EOF]
-                                    );
+                                         vec![TokenType::CLASS,
+                                         TokenType::IDENTIFIER("SomeClass".to_string()),
+                                         TokenType::LEFT_BRACE,
+                                         TokenType::IDENTIFIER("someMethod".to_string()),
+                                         TokenType::LEFT_PAREN,
+                                         TokenType::IDENTIFIER("someParam".to_string()),
+                                         TokenType::RIGHT_PAREN,
+                                         TokenType::LEFT_BRACE,
+                                         TokenType::VAR,
+                                         TokenType::IDENTIFIER("someVar".to_string()),
+                                         TokenType::EQUAL,
+                                         TokenType::IDENTIFIER("someParam".to_string()),
+                                         TokenType::PLUS,
+                                         TokenType::STRING("text'!".to_string()),
+                                         TokenType::SEMICOLON,
+                                         TokenType::RETURN,
+                                         TokenType::IDENTIFIER("someVar".to_string()),
+                                         TokenType::SEMICOLON,
+                                         TokenType::RIGHT_BRACE,
+                                         TokenType::RIGHT_BRACE,
+                                         TokenType::EOF]
+                                             );
     }
 
     fn scanned_file_matches_token_types(fileName: &str, expected: Vec<TokenType>) {
