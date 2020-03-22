@@ -37,7 +37,7 @@ fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
         }
     }
 
-    Result::Ok(expr)
+    Ok(expr)
 }
 
 fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
@@ -48,7 +48,7 @@ fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
             expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
         }
     }
-    Result::Ok(expr)
+    Ok(expr)
 }
 
 fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
@@ -60,7 +60,7 @@ fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
             expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
         }
     }
-    Result::Ok(expr)
+    Ok(expr)
 }
 
 fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
@@ -72,14 +72,14 @@ fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
             expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
         }
     }
-    Result::Ok(expr)
+    Ok(expr)
 }
 
 fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     if next_token_matches(tokens, &[TokenType::BANG, TokenType::MINUS]) {
         if let Some(operator) = tokens.pop_front() {
             let right = unary(tokens)?;
-            return Result::Ok(Expr::UNARY(Unary {operator: operator, right: Box::new(right)}))
+            return Ok(Expr::UNARY(Unary {operator: operator, right: Box::new(right)}))
         }
     }
     primary(tokens)
@@ -89,22 +89,22 @@ fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     if let Some(token) = tokens.get(0) {
         if let Some(result) = token.token_type.to_literal() {
             tokens.pop_front(); // consume
-            return Result::Ok(Expr::LITERAL(result));
+            return Ok(Expr::LITERAL(result));
         } else if let TokenType::LEFT_PAREN = token.token_type {
             tokens.pop_front(); // consume
             let expr = expression(tokens)?;
 
             if let Some(other_token) = tokens.pop_front() {
                 if other_token.token_type != TokenType::RIGHT_PAREN {
-                    return Result::Err("Expect ')' after expression.".to_string());
+                    return Err("Expect ')' after expression.".to_string());
                 }
             }
-            return Result::Ok(
+            return Ok(
                 Expr::GROUPING(Grouping {expression: Box::new(expr)})
                 );
         }
     }
-    Result::Err("Could not match Token".to_string())
+    Err("Could not match Token".to_string())
 }
 
 // FIXME this will not work for TokenType with values i.e. TokenType::NUMBER
