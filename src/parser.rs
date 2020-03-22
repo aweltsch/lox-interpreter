@@ -82,6 +82,7 @@ fn next_token_matches(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool 
     if let Some(token) = tokens.get(0) {
         for token_type in expected {
             if token_type == &token.token_type {
+                return true;
             }
         }
     }
@@ -122,6 +123,6 @@ mod tests {
         let mut tokens = scan_tokens(input);
         let expr = parse(tokens);
         let calculated_ast = expr.print_ast();
-        assert_eq!(expected, calculated_ast);
+        assert_eq!(calculated_ast, expected);
     }
 }
