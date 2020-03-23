@@ -20,14 +20,12 @@ impl<'a> ScannerState<'a> {
         self.char_iter.peek().is_some()
     }
 
+    // FIXME the usage of advance might suggest, that we don't need to return anything from here
+    // rethink interface
     fn advance(&mut self) -> Option<char> {
-        match self.char_iter.next() {
-            Some(c) => {
-                self.cur_lexeme.push(c);
-                Some(c)
-            }
-            None => None
-        }
+        let result = self.char_iter.next();
+        self.cur_lexeme.extend(result);
+        result
     }
 
     fn skip_whitespace(&mut  self) {
@@ -52,6 +50,7 @@ impl<'a> ScannerState<'a> {
         } else if *a == '"' {
             self.read_string()
         } else {
+            // FIXME too deeply nested here
             let c = self.advance()?;
             match c {
                 '(' => Some(TokenType::LEFT_PAREN),
@@ -65,7 +64,7 @@ impl<'a> ScannerState<'a> {
                 ';' => Some(TokenType::SEMICOLON),
                 '*' => Some(TokenType::STAR),
                 '/' => if self.next_char_matches('/') {
-                    while self.char_iter.peek().is_some() && !self.next_char_matches('\n') {
+                    while self.has_next() && !self.next_char_matches('\n') {
                         self.advance();
                     }
                     None
@@ -140,10 +139,7 @@ impl<'a> ScannerState<'a> {
             self.advance();
         }
 
-        match self.cur_lexeme.as_str().parse::<f64>() {
-            Ok(num) => Some(TokenType::NUMBER(num)),
-            Err(_) => None
-        }
+        self.cur_lexeme.as_str().parse::<f64>().map(|n| TokenType::NUMBER(n)).ok()
     }
 
     fn scan_identifier(&mut self) -> Option<TokenType> {
@@ -185,12 +181,7 @@ pub fn scan_tokens(source: &str) -> Vec<Token> {
         scanner_state.cur_lexeme.clear();
 
         let token_type = scanner_state.scan_token();
-        match token_type {
-            Some(t) => {
-                tokens.push(Token {token_type: t, lexeme: scanner_state.cur_lexeme.to_string(), line: scanner_state.line});
-            },
-            None => ()
-        }
+        tokens.extend(token_type.map(|t| Token {token_type: t, lexeme: scanner_state.cur_lexeme.to_string(), line: scanner_state.line}));
     }
     tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: scanner_state.line});
     tokens
@@ -203,7 +194,7 @@ pub fn scan_tokens(source: &str) -> Vec<Token> {
 #[derive(PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: String,
+    pub lexeme: String, // FIXME do we need lexeme?
     pub line: i32
 }
 
