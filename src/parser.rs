@@ -109,14 +109,9 @@ fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
 
 // FIXME this will not work for TokenType with values i.e. TokenType::NUMBER
 fn next_token_matches(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool {
-    if let Some(token) = tokens.get(0) {
-        for token_type in expected {
-            if token_type == &token.token_type {
-                return true;
-            }
-        }
-    }
-    false
+    tokens.get(0).map_or(false, |token| {
+        expected.contains(&token.token_type)
+    })
 }
 
 fn synchronize(tokens: &mut VecDeque<Token>) {
