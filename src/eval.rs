@@ -3,7 +3,7 @@ use crate::expr::*;
 use crate::scanning::TokenType;
 
 // FIXME this is replicated the 3rd time!
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LoxValue {
     NIL,
     BOOLEAN(bool),
@@ -71,7 +71,7 @@ fn evaluate_unary(u: &Unary) -> Result<LoxValue, String> {
 
 fn add_values(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
     match (&left, &right) {
-        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(r * l)),
+        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(l + r)),
         (LoxValue::STRING(s), LoxValue::STRING(t)) => {
             let mut res = String::new();
             res.push_str(s);
@@ -84,21 +84,21 @@ fn add_values(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
 
 fn multiply_values(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
     match (&left, &right) {
-        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(r * l)),
+        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(l * r)),
         _ => Err(format!("Can not multiply operands {:?} and {:?}", left, right))
     }
 }
 
 fn divide_values(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
     match (&left, &right) {
-        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(r / l)),
+        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(l / r)),
         _ => Err(format!("Can not divide operands {:?} and {:?}", left, right))
     }
 }
 
 fn subtract_values(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
     match (&left, &right) {
-        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(r - l)),
+        (LoxValue::NUMBER(l), LoxValue::NUMBER(r)) => Ok(LoxValue::NUMBER(l - r)),
         _ => Err(format!("Can not subtract operands {:?} and {:?}", left, right))
     }
 }
@@ -116,5 +116,22 @@ fn logical_negate_value(value: LoxValue) -> Result<LoxValue, String> {
         Ok(LoxValue::BOOLEAN(!b))
     } else {
         panic!("Programming error: should be able to negate every value.");
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_arithmetic() {
+        assert_eq!(negate_value(LoxValue::NUMBER(1.0)).unwrap(), LoxValue::NUMBER(-1.0));
+        assert_eq!(logical_negate_value(LoxValue::NIL).unwrap(), LoxValue::BOOLEAN(true));
+        assert_eq!(add_values(LoxValue::NUMBER(1.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::NUMBER(3.0));
+        assert_eq!(subtract_values(LoxValue::NUMBER(1.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::NUMBER(-1.0));
+        assert_eq!(divide_values(LoxValue::NUMBER(1.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::NUMBER(0.5));
+        assert_eq!(multiply_values(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::NUMBER(6.0));
+        assert_eq!(add_values(LoxValue::STRING("left".to_string()), LoxValue::STRING("right".to_string())).unwrap(),
+            LoxValue::STRING("leftright".to_string()));
     }
 }
