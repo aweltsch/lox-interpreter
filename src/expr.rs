@@ -24,7 +24,6 @@ pub struct Grouping {
 }
 
 pub enum Literal {
-    IDENTIFIER(String),
     STRING(String),
     NUMBER(f64),
     BOOLEAN(bool),
@@ -34,7 +33,6 @@ pub enum Literal {
 impl Literal {
     pub fn to_string(&self) -> String {
         match self {
-            Literal::IDENTIFIER(s) => format!("{}", s),
             Literal::STRING(s) => format!("\"{}\"", s),
             Literal::NUMBER(n) => format!("{}", n),
             Literal::BOOLEAN(b) => format!("{}", b),
