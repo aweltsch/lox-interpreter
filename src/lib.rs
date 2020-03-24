@@ -9,6 +9,7 @@ mod n_peekable;
 mod scanning;
 mod expr;
 mod parser;
+mod eval;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {
