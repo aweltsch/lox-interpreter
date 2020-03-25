@@ -163,6 +163,10 @@ fn unequal_to(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::scanning::scan_tokens;
+    use crate::scanning::Token;
+    use crate::scanning::TokenType;
+    use crate::parser::parse;
 
     #[test]
     fn test_arithmetic() {
@@ -180,5 +184,21 @@ mod test {
         assert_eq!(less_or_equal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(false));
         assert_eq!(equal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(false));
         assert_eq!(unequal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(true));
+    }
+
+    #[test]
+    fn test_eval() {
+        let test_data = &[("13 + 87", LoxValue::NUMBER(100.0)), 
+                         ("-(3 + 2) / 2", LoxValue::NUMBER(-2.5)),
+                         ("!(3 >= 2) == true", LoxValue::BOOLEAN(false))
+        ];
+                         
+        for (original, expected) in test_data {
+            let mut original_tokens = scan_tokens(&original);
+            let expr = parse(original_tokens);
+            let actual = evaluate(&expr.unwrap());
+
+            assert_eq!(actual.unwrap(), *expected, "Value does not match for: {}", original);
+        }
     }
 }
