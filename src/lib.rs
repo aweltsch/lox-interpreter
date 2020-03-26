@@ -4,6 +4,8 @@ use std::path::Path;
 use std::io;
 
 use self::scanning::scan_tokens;
+use self::parser::parse;
+use self::eval::evaluate;
 
 mod n_peekable;
 mod scanning;
@@ -37,13 +39,12 @@ pub fn run_prompt() {
     }
 }
 
-fn run(s: &str) -> Result<(), &'static str> {
-    let tokens = scan_tokens(s);
-
-    for token in tokens.iter() {
-        println!("{:?}", token);
+fn run(s: &str) -> Result<(),String> {
+    let mut tokens = scan_tokens(s);
+    let ast = parse(tokens);
+    if let Some(expr) = ast {
+        evaluate(&expr);
     }
-
     Ok(())
 }
 

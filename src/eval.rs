@@ -21,7 +21,7 @@ impl LoxValue {
     }
 }
 
-fn evaluate(expr: &Expr) -> Result<LoxValue, String> {
+pub fn evaluate(expr: &Expr) -> Result<LoxValue, String> {
     match expr {
         Expr::BINARY(b) => evaluate_binary(b),
         Expr::GROUPING(g) => evaluate_grouping(g),

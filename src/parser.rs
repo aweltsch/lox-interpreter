@@ -12,7 +12,7 @@ use crate::expr::Unary;
 
 // returns AST
 // consumes tokens!
-fn parse(mut tokens: Vec<Token>) -> Option<Expr> {
+pub fn parse(mut tokens: Vec<Token>) -> Option<Expr> {
     match expression(&mut VecDeque::from(tokens)) {
         Ok(expr) => Some(expr),
         Err(why) => {
