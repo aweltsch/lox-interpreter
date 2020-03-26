@@ -28,7 +28,7 @@ pub struct NPeekable<'a> {
                 return None;
             }
             if n > self.lookup.len() {
-                for i in 0..(n - self.lookup.len()) {
+                for _ in 0..(n - self.lookup.len()) {
                     self.lookup.push_back(self.char_iter.next()?);
                 }
             }

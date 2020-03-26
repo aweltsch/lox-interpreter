@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::io;
@@ -6,6 +5,7 @@ use std::io;
 use self::scanning::scan_tokens;
 use self::parser::parse;
 use self::eval::evaluate;
+use self::eval::LoxValue;
 
 mod n_peekable;
 mod scanning;
@@ -15,36 +15,32 @@ mod eval;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {
-        Err(why) => panic!("can not read file conents: {}", why.description()),
+        Err(why) => panic!("can not read file conents: {:?}", why),
         Ok(s) => s
     };
-    match run(&file_content) {
-        Ok(v) => v,
-        Err(_) => std::process::exit(65)
+    if let Err(_) = run(&file_content) {
+        std::process::exit(65);
     }
 }
 
 pub fn run_prompt() {
     loop {
         let mut line = String::new();
-        match io::stdin().read_line(&mut line) {
-            Err(why) => panic!("can not read from stdin"),
-            Ok(s) => s
-        };
+        if let Err(why) = io::stdin().read_line(&mut line) {
+            panic!("can not read from stdin: {:?}", why);
+        }
         // ignore error while running script
-        match run(&line) {
-            Ok(v) => v,
-            Err(_) => ()
-        };
+        run(&line);
     }
 }
 
-fn run(s: &str) -> Result<(),String> {
-    let mut tokens = scan_tokens(s);
+fn run(s: &str) -> Result<LoxValue,String> {
+    let tokens = scan_tokens(s);
     let ast = parse(tokens);
     if let Some(expr) = ast {
-        evaluate(&expr);
+        evaluate(&expr)
+    } else {
+        Err("sad panda".to_string())
     }
-    Ok(())
 }
 

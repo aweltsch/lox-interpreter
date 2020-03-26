@@ -1,9 +1,5 @@
-use std::collections::HashMap;
 use std::option::Option;
-use std::fs;
-use std::path::Path;
 use crate::n_peekable::NPeekable;
-use std::error::Error;
 
 struct ScannerState<'a> {
     line: i32,
@@ -71,7 +67,7 @@ impl<'a> ScannerState<'a> {
                 } else {
                     Some(TokenType::SLASH)
                 },
-                default => {
+                _ => {
                     if self.next_char_matches('=') {
                         self.advance();
                         match c {
@@ -79,7 +75,7 @@ impl<'a> ScannerState<'a> {
                             '=' => Some(TokenType::EQUAL_EQUAL),
                             '<' => Some(TokenType::LESS_EQUAL),
                             '>' => Some(TokenType::GREATER_EQUAL),
-                            default => None
+                            _ => None
                         }
                     } else {
                         match c {
@@ -87,7 +83,7 @@ impl<'a> ScannerState<'a> {
                             '=' => Some(TokenType::EQUAL),
                             '<' => Some(TokenType::LESS),
                             '>' => Some(TokenType::GREATER),
-                            default => None
+                            _ => None
                         }
                     }
                 }
@@ -208,6 +204,7 @@ fn report(line: i32, location: &str, message: &str) {
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[allow(non_camel_case_types)]   
 pub enum TokenType {
     // Single-character tokens.
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,

@@ -1,18 +1,29 @@
 use std::collections::VecDeque;
 use std::result::Result;
 use std::option::Option;
+use std::iter::Iterator;
+use std::iter::Peekable;
 
 use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::expr::Expr;
 use crate::expr::Binary;
 use crate::expr::Grouping;
-use crate::expr::Literal;
 use crate::expr::Unary;
+
+pub enum Statement {
+    PRINT(Expr), EXPRESSION(Expr)
+}
+
+type PeekableTokens = Peekable<Box<dyn Iterator<Item = Token>>>;
+
+struct ParserState {
+    token_iter: PeekableTokens
+}
 
 // returns AST
 // consumes tokens!
-pub fn parse(mut tokens: Vec<Token>) -> Option<Expr> {
+pub fn parse(tokens: Vec<Token>) -> Option<Expr> {
     match expression(&mut VecDeque::from(tokens)) {
         Ok(expr) => Some(expr),
         Err(why) => {
@@ -22,7 +33,7 @@ pub fn parse(mut tokens: Vec<Token>) -> Option<Expr> {
     }
 }
 
-// TODO consider iterator...
+impl ParserState {}
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     equality(tokens)
 }

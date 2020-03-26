@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 use crate::expr::*;
 use crate::scanning::TokenType;
 
