@@ -1,8 +1,6 @@
 use std::collections::VecDeque;
 use std::result::Result;
 use std::option::Option;
-use std::iter::Iterator;
-use std::iter::Peekable;
 
 use crate::scanning::Token;
 use crate::scanning::TokenType;
@@ -15,12 +13,7 @@ pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr)
 }
 
-type PeekableTokens = Peekable<Box<dyn Iterator<Item = Token>>>;
-
-struct ParserState {
-    token_iter: PeekableTokens
-}
-
+// FIXME don't want to heap allocate...
 // returns AST
 // consumes tokens!
 pub fn parse(tokens: Vec<Token>) -> Option<Expr> {
@@ -33,7 +26,6 @@ pub fn parse(tokens: Vec<Token>) -> Option<Expr> {
     }
 }
 
-impl ParserState {}
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     equality(tokens)
 }
@@ -158,7 +150,7 @@ mod tests {
     }
 
     fn ast_matches(input: &str, expected: &str) {
-        let mut tokens = scan_tokens(input);
+        let tokens = scan_tokens(input);
         let expr = parse(tokens);
         let calculated_ast = expr.unwrap().print_ast();
         assert_eq!(calculated_ast, expected);
@@ -168,7 +160,7 @@ mod tests {
     fn report_errors() {
         let strings = &["(123 + 456", "12 +", "(123 <= 123) == (233 * 3) =="];
         for input in strings {
-            let mut tokens = scan_tokens(&input);
+            let tokens = scan_tokens(&input);
             let expr = parse(tokens);
             assert!(expr.is_none(), "No error for string: {}", input);
         }
@@ -183,7 +175,7 @@ mod tests {
             let mut original_tokens = VecDeque::from(scan_tokens(&original));
             let expected_tokens = VecDeque::from(scan_tokens(&expected));
 
-            let synchronized_tokens = synchronize(&mut original_tokens);
+            let _synchronized_tokens = synchronize(&mut original_tokens);
             assert_eq!(original_tokens, expected_tokens, "Tokens don't match for: {}", original);
         }
     }

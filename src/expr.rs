@@ -46,41 +46,6 @@ pub struct Unary {
     pub right: Box<Expr>
 }
 
-impl Expr {
-    pub fn print_ast(&self) -> String {
-        let mut result = String::new();
-        match self {
-            Expr::BINARY(b) => {
-                result.push('(');
-                result.push_str(&b.operator.lexeme);
-                result.push(' ');
-                result.push_str(&b.left.print_ast());
-                result.push(' ');
-                result.push_str(&b.right.print_ast());
-                result.push(')');
-            },
-            Expr::GROUPING(g) => {
-                result.push('(');
-                result.push_str(&"group");
-                result.push(' ');
-                result.push_str(&g.expression.print_ast());
-                result.push(')');
-            },
-            Expr::LITERAL(l) => {
-                result.push_str(&l.to_string());
-            },
-            Expr::UNARY(u) => {
-                result.push('(');
-                result.push_str(&u.operator.lexeme);
-                result.push(' ');
-                result.push_str(&u.right.print_ast());
-                result.push(')');
-            }
-        }
-        result
-    }
-}
-
 impl TokenType {
     pub fn to_literal(&self) -> Option<Literal> {
         match self {
@@ -97,6 +62,41 @@ impl TokenType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    impl Expr {
+        pub fn print_ast(&self) -> String {
+            let mut result = String::new();
+            match self {
+                Expr::BINARY(b) => {
+                    result.push('(');
+                    result.push_str(&b.operator.lexeme);
+                    result.push(' ');
+                    result.push_str(&b.left.print_ast());
+                    result.push(' ');
+                    result.push_str(&b.right.print_ast());
+                    result.push(')');
+                },
+                Expr::GROUPING(g) => {
+                    result.push('(');
+                    result.push_str(&"group");
+                    result.push(' ');
+                    result.push_str(&g.expression.print_ast());
+                    result.push(')');
+                },
+                Expr::LITERAL(l) => {
+                    result.push_str(&l.to_string());
+                },
+                Expr::UNARY(u) => {
+                    result.push('(');
+                    result.push_str(&u.operator.lexeme);
+                    result.push(' ');
+                    result.push_str(&u.right.print_ast());
+                    result.push(')');
+                }
+            }
+            result
+        }
+    }
+
 
     #[test]
     fn test_parenthesize() {

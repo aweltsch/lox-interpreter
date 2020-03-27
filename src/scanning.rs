@@ -229,6 +229,8 @@ pub enum TokenType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::Path;
 
     fn assert_correctly_scanned_token(input: &str, expected_token_type: TokenType) {
         let result = scan_tokens(input);
@@ -358,8 +360,8 @@ mod tests {
                                              );
     }
 
-    fn scanned_file_matches_token_types(fileName: &str, expected: Vec<TokenType>) {
-        let path = Path::new(fileName);
+    fn scanned_file_matches_token_types(file_name: &str, expected: Vec<TokenType>) {
+        let path = Path::new(file_name);
         match fs::read_to_string(path) {
             Ok(file_content) => {
                 let tokens = scan_tokens(&file_content);
@@ -368,7 +370,7 @@ mod tests {
                     assert_eq!(token.token_type, *expected_type);
                 }
             }
-            Err(why) => assert!(false, "{}", why.description())
+            Err(why) => assert!(false, "{:?}", why)
         }
     }
 }

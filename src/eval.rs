@@ -163,8 +163,6 @@ fn unequal_to(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
 mod test {
     use super::*;
     use crate::scanning::scan_tokens;
-    use crate::scanning::Token;
-    use crate::scanning::TokenType;
     use crate::parser::parse;
 
     #[test]
@@ -193,7 +191,7 @@ mod test {
         ];
                          
         for (original, expected) in test_data {
-            let mut original_tokens = scan_tokens(&original);
+            let original_tokens = scan_tokens(&original);
             let expr = parse(original_tokens);
             let actual = evaluate(&expr.unwrap());
 
