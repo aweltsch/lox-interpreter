@@ -9,6 +9,8 @@ use crate::expr::Binary;
 use crate::expr::Grouping;
 use crate::expr::Unary;
 
+type ParseError = String;
+
 pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr)
 }
@@ -26,11 +28,15 @@ pub fn parse(tokens: Vec<Token>) -> Option<Expr> {
     }
 }
 
-fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn statement(tokens: Vec<Token>) -> Result<Statement, ParseError> {
+    Err("".to_string())
+}
+
+fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     equality(tokens)
 }
 
-fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     let mut expr = comparison(tokens)?;
 
     while next_token_matches(tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
@@ -43,7 +49,7 @@ fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     Ok(expr)
 }
 
-fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     let mut expr = addition(tokens)?;
     while next_token_matches(tokens, &[TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL]) {
         if let Some(operator) = tokens.pop_front() {
@@ -54,7 +60,7 @@ fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     Ok(expr)
 }
 
-fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     let mut expr = multiplication(tokens)?;
 
     while next_token_matches(tokens, &[TokenType::PLUS, TokenType::MINUS]) {
@@ -66,7 +72,7 @@ fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     Ok(expr)
 }
 
-fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     let mut expr = unary(tokens)?;
 
     while next_token_matches(tokens, &[TokenType::STAR, TokenType::SLASH]) {
@@ -78,7 +84,7 @@ fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     Ok(expr)
 }
 
-fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     if next_token_matches(tokens, &[TokenType::BANG, TokenType::MINUS]) {
         if let Some(operator) = tokens.pop_front() {
             let right = unary(tokens)?;
@@ -88,7 +94,7 @@ fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
     primary(tokens)
 }
 
-fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, String> {
+fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     if let Some(token) = tokens.get(0) {
         if let Some(result) = token.token_type.to_literal() {
             tokens.pop_front(); // consume
