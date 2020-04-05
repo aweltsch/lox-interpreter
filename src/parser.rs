@@ -15,20 +15,14 @@ pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr)
 }
 
-// FIXME don't want to heap allocate...
+// FIXME introduce abstraction layer so we dont consume the tokens
 // returns AST
-// consumes tokens!
-pub fn parse(tokens: Vec<Token>) -> Option<Expr> {
-    match expression(&mut VecDeque::from(tokens)) {
-        Ok(expr) => Some(expr),
-        Err(why) => {
-            eprintln!("{}", why);
-            None
-        }
-    }
+// consumes tokens!don't want to heap allocate...
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
+    statement(tokens)
 }
 
-fn statement(tokens: Vec<Token>) -> Result<Statement, ParseError> {
+fn statement(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
     Err("".to_string())
 }
 
@@ -146,6 +140,20 @@ fn synchronize(tokens: &mut VecDeque<Token>) {
 
 #[cfg(test)]
 mod tests {
+    impl Statement {
+        fn print_ast(&self) -> String {
+            match self {
+                Statement::PRINT(expr) => expr.print_ast(),
+                Statement::EXPRESSION(expr) => expr.print_ast()
+            }
+        }
+        pub fn get_expr(&self) -> &Expr {
+            match self {
+                Statement::PRINT(expr) => expr,
+                Statement::EXPRESSION(expr) => expr
+            }
+        }
+    }
     use super::*;
     use crate::scanning::scan_tokens;
 
@@ -157,8 +165,8 @@ mod tests {
 
     fn ast_matches(input: &str, expected: &str) {
         let tokens = scan_tokens(input);
-        let expr = parse(tokens);
-        let calculated_ast = expr.unwrap().print_ast();
+        let stmt = &parse(tokens).unwrap()[0];
+        let calculated_ast = stmt.print_ast();
         assert_eq!(calculated_ast, expected);
     }
 
@@ -167,8 +175,8 @@ mod tests {
         let strings = &["(123 + 456", "12 +", "(123 <= 123) == (233 * 3) =="];
         for input in strings {
             let tokens = scan_tokens(&input);
-            let expr = parse(tokens);
-            assert!(expr.is_none(), "No error for string: {}", input);
+            let stmt = parse(tokens);
+            assert!(stmt.is_err(), "No error for string: {}", input);
         }
     }
 

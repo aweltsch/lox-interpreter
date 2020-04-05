@@ -6,6 +6,7 @@ use self::scanning::scan_tokens;
 use self::parser::parse;
 use self::eval::evaluate;
 use self::eval::LoxValue;
+use self::parser::Statement;
 
 mod n_peekable;
 mod scanning;
@@ -36,11 +37,14 @@ pub fn run_prompt() {
 
 fn run(s: &str) -> Result<LoxValue,String> {
     let tokens = scan_tokens(s);
-    let ast = parse(tokens);
-    if let Some(expr) = ast {
-        evaluate(&expr)
-    } else {
-        Err("sad panda".to_string())
+    if let Ok(stmts) = parse(tokens) {
+        for stmt in stmts {
+            match stmt {
+                Statement::PRINT(expr) => evaluate(&expr),
+                Statement::EXPRESSION(expr) => evaluate(&expr)
+            };
+        }
     }
+    Err("sad panda".to_string())
 }
 

@@ -192,8 +192,8 @@ mod test {
                          
         for (original, expected) in test_data {
             let original_tokens = scan_tokens(&original);
-            let expr = parse(original_tokens);
-            let actual = evaluate(&expr.unwrap());
+            let stmt = &parse(original_tokens).unwrap()[0];
+            let actual = evaluate(stmt.get_expr());
 
             assert_eq!(actual.unwrap(), *expected, "Value does not match for: {}", original);
         }
