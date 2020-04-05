@@ -19,11 +19,28 @@ pub enum Statement {
 // returns AST
 // consumes tokens!don't want to heap allocate...
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
-    statement(tokens)
+    let mut token_deque = VecDeque::from(tokens);
+    let mut statements = Vec::new();
+    while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
+        statements.push(statement(&mut token_deque)?);
+    }
+    return Ok(statements);
 }
 
-fn statement(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
-    Err("".to_string())
+fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    let is_print_statement = next_token_matches(tokens, &[TokenType::PRINT]);
+    if is_print_statement {
+        tokens.pop_front();
+    }
+
+    let expr = expression(tokens)?;
+
+    let stmt = if is_print_statement {
+        Statement::PRINT(expr)
+    } else {
+        Statement::EXPRESSION(expr)
+    };
+    Ok(stmt)
 }
 
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
@@ -89,6 +106,7 @@ fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
 }
 
 fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
+    println!("{:?}", tokens);
     if let Some(token) = tokens.get(0) {
         if let Some(result) = token.token_type.to_literal() {
             tokens.pop_front(); // consume
