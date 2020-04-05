@@ -29,18 +29,24 @@ pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
 
 fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let is_print_statement = next_token_matches(tokens, &[TokenType::PRINT]);
-    if is_print_statement {
-        tokens.pop_front();
-    }
-
-    let expr = expression(tokens)?;
-
     let stmt = if is_print_statement {
-        Statement::PRINT(expr)
+        tokens.pop_front();
+        print_statement(tokens)?
     } else {
-        Statement::EXPRESSION(expr)
+        expression_statement(tokens)?
     };
+
     Ok(stmt)
+}
+
+fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    let expr = expression(tokens)?;
+    Ok(Statement::PRINT(expr))
+}
+
+fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    let expr = expression(tokens)?;
+    Ok(Statement::EXPRESSION(expr))
 }
 
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
