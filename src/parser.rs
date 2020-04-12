@@ -16,8 +16,6 @@ pub enum Statement {
 }
 
 // FIXME introduce abstraction layer so we dont consume the tokens
-// returns AST
-// consumes tokens!don't want to heap allocate...
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
     let mut token_deque = VecDeque::from(tokens);
     let mut statements = Vec::new();
@@ -41,12 +39,21 @@ fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
 
 fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
-    Ok(Statement::PRINT(expr))
+    consume(tokens, TokenType::SEMICOLON).map(|x| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
 }
 
 fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
-    Ok(Statement::EXPRESSION(expr))
+    consume(tokens, TokenType::SEMICOLON).map(|x| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
+}
+
+fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<()> {
+    if next_token_matches(tokens, &[token_type]) {
+        tokens.pop_front();
+        Some(())
+    } else {
+        None
+    }
 }
 
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
@@ -112,7 +119,6 @@ fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
 }
 
 fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    println!("{:?}", tokens);
     if let Some(token) = tokens.get(0) {
         if let Some(result) = token.token_type.to_literal() {
             tokens.pop_front(); // consume
@@ -178,6 +184,7 @@ mod tests {
             }
         }
     }
+
     use super::*;
     use crate::scanning::scan_tokens;
 
@@ -188,9 +195,9 @@ mod tests {
     }
 
     fn ast_matches(input: &str, expected: &str) {
-        let tokens = scan_tokens(input);
-        let stmt = &parse(tokens).unwrap()[0];
-        let calculated_ast = stmt.print_ast();
+        let mut tokens = VecDeque::from(scan_tokens(input));
+        let expr = expression(&mut tokens).unwrap();
+        let calculated_ast = expr.print_ast();
         assert_eq!(calculated_ast, expected);
     }
 

@@ -185,9 +185,9 @@ mod test {
 
     #[test]
     fn test_eval() {
-        let test_data = &[("13 + 87", LoxValue::NUMBER(100.0)), 
-                         ("-(3 + 2) / 2", LoxValue::NUMBER(-2.5)),
-                         ("!(3 >= 2) == true", LoxValue::BOOLEAN(false))
+        let test_data = &[("13 + 87;", LoxValue::NUMBER(100.0)), 
+                         ("-(3 + 2) / 2;", LoxValue::NUMBER(-2.5)),
+                         ("!(3 >= 2) == true;", LoxValue::BOOLEAN(false))
         ];
                          
         for (original, expected) in test_data {
