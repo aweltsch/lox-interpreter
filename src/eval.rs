@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::expr::*;
 use crate::scanning::TokenType;
 
@@ -17,6 +19,18 @@ impl LoxValue {
             LoxValue::BOOLEAN(b) => LoxValue::BOOLEAN(*b),
             _ => LoxValue::BOOLEAN(true)
         }
+    }
+}
+
+impl fmt::Display for LoxValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output = match self {
+            LoxValue::NIL => "nil".to_string(),
+            LoxValue::BOOLEAN(b) => b.to_string(),
+            LoxValue::NUMBER(n) => n.to_string(),
+            LoxValue::STRING(s) => format!("\"{}\"", s)
+        };
+        write!(f, "{}", output)
     }
 }
 

@@ -9,7 +9,7 @@ use crate::expr::Binary;
 use crate::expr::Grouping;
 use crate::expr::Unary;
 
-type ParseError = String;
+pub type ParseError = String;
 
 pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr)
