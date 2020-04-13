@@ -30,17 +30,6 @@ pub enum Literal {
     NIL
 }
 
-impl Literal {
-    pub fn to_string(&self) -> String {
-        match self {
-            Literal::STRING(s) => format!("\"{}\"", s),
-            Literal::NUMBER(n) => format!("{}", n),
-            Literal::BOOLEAN(b) => format!("{}", b),
-            Literal::NIL => "nil".to_string()
-        }
-    }
-}
-
 pub struct Unary {
     pub operator: Token,
     pub right: Box<Expr>
@@ -62,6 +51,18 @@ impl TokenType {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Literal {
+        pub fn to_string(&self) -> String {
+            match self {
+                Literal::STRING(s) => format!("\"{}\"", s),
+                Literal::NUMBER(n) => format!("{}", n),
+                Literal::BOOLEAN(b) => format!("{}", b),
+                Literal::NIL => "nil".to_string()
+            }
+        }
+    }
+
     impl Expr {
         pub fn print_ast(&self) -> String {
             let mut result = String::new();

@@ -1,4 +1,3 @@
-use crate::expr::Expr;
 use crate::parser::Statement;
 use crate::parser::ParseError;
 use crate::eval::evaluate;

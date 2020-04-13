@@ -40,7 +40,7 @@ pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let result = if next_token_matches(tokens, &[TokenType::VAR]) {
-        varDecl(tokens)
+        var_decl(tokens)
     } else {
         statement(tokens)
     };
@@ -50,7 +50,7 @@ fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     return result;
 }
 
-fn varDecl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+fn var_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     if let Some(token) = tokens.pop_front() {
         if let TokenType::IDENTIFIER(name) = token.token_type {
             let initializer = if next_token_matches(tokens, &[TokenType::EQUAL]) {
@@ -58,12 +58,12 @@ fn varDecl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
             } else {
                 Expr::LITERAL(Literal::NIL)
             };
-            Ok(Statement::VAR(name, initializer))
+            consume(tokens, TokenType::SEMICOLON).map(|_| Statement::VAR(name, initializer)).ok_or("Expect ';' after variable declaration.".to_string())
         } else {
             Err("Expect variable name.".to_string())
         }
     } else {
-        panic!("Programming error, varDecl has been called without any more tokens.");
+        panic!("Programming error, var_decl has been called without any more tokens.");
     }
 }
 
@@ -81,12 +81,12 @@ fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
 
 fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
-    consume(tokens, TokenType::SEMICOLON).map(|x| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
+    consume(tokens, TokenType::SEMICOLON).map(|_| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
 }
 
 fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
-    consume(tokens, TokenType::SEMICOLON).map(|x| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
+    consume(tokens, TokenType::SEMICOLON).map(|_| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
 }
 
 fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<()> {

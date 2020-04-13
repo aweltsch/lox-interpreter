@@ -4,9 +4,7 @@ use std::io;
 
 use self::scanning::scan_tokens;
 use self::parser::parse;
-use self::eval::evaluate;
 use self::eval::LoxValue;
-use self::parser::Statement;
 use self::interpreter::Interpreter;
 
 mod n_peekable;
@@ -32,8 +30,10 @@ pub fn run_prompt() {
         if let Err(why) = io::stdin().read_line(&mut line) {
             panic!("can not read from stdin: {:?}", why);
         }
-        // ignore error while running script
-        run(&line);
+        match run(&line) {
+            Ok(value) => println!("{}", value),
+            Err(s) => println!("{}", s)
+        };
     }
 }
 
