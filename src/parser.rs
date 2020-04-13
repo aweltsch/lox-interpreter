@@ -11,6 +11,15 @@ use crate::expr::Unary;
 
 pub type ParseError = String;
 
+pub struct Parser {
+}
+
+impl Parser {
+    fn new() -> Parser {
+        Parser { }
+    }
+}
+
 pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr)
 }
@@ -20,9 +29,28 @@ pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
     let mut token_deque = VecDeque::from(tokens);
     let mut statements = Vec::new();
     while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
-        statements.push(statement(&mut token_deque)?);
+        if let Ok(stmt) = declaration(&mut token_deque) {
+            statements.push(stmt);
+        }
+        // TODO handle errors?
     }
     return Ok(statements);
+}
+
+fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    let result = if next_token_matches(tokens, &[TokenType::VAR]) {
+        varDecl(tokens)
+    } else {
+        statement(tokens)
+    };
+    if result.is_err() {
+        synchronize(tokens);
+    }
+    return result;
+}
+
+fn varDecl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    Err("Not implemented".to_string())
 }
 
 fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
