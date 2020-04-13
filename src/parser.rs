@@ -36,12 +36,14 @@ impl Parser {
     }
 }
 
+#[derive(Debug)]
 pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
 }
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let result = if next_token_matches(tokens, &[TokenType::VAR]) {
+        tokens.pop_front();
         var_decl(tokens)
     } else {
         statement(tokens)
@@ -56,6 +58,7 @@ fn var_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     if let Some(token) = tokens.pop_front() {
         if let TokenType::IDENTIFIER(name) = token.token_type {
             let initializer = if next_token_matches(tokens, &[TokenType::EQUAL]) {
+                tokens.pop_front();
                 expression(tokens)?
             } else {
                 Expr::LITERAL(Literal::NIL)

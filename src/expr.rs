@@ -5,6 +5,7 @@ use crate::scanning::Token;
 
 // FIXME is this an anti-pattern?
 // I do not want unnamed parameters for the enum parameters...
+#[derive(Debug)]
 pub enum Expr {
     BINARY(Binary),
     GROUPING(Grouping),
@@ -13,6 +14,7 @@ pub enum Expr {
     VARIABLE(Variable)
 }
 
+#[derive(Debug)]
 pub struct Binary {
     pub left: Box<Expr>,
     pub operator: Token,
@@ -20,10 +22,12 @@ pub struct Binary {
 }
 
 
+#[derive(Debug)]
 pub struct Grouping {
     pub expression: Box<Expr>
 }
 
+#[derive(Debug)]
 pub enum Literal {
     STRING(String),
     NUMBER(f64),
@@ -31,11 +35,13 @@ pub enum Literal {
     NIL
 }
 
+#[derive(Debug)]
 pub struct Unary {
     pub operator: Token,
     pub right: Box<Expr>
 }
 
+#[derive(Debug)]
 pub struct Variable {
     pub name: String
 }

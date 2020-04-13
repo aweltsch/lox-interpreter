@@ -7,7 +7,7 @@ use crate::parser::Statement;
 use crate::parser::ParseError;
 
 // FIXME this is replicated the 3rd time!
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LoxValue {
     NIL,
     BOOLEAN(bool),
@@ -55,6 +55,8 @@ impl Environment {
     }
 
     pub fn get(&self, name: &str) -> Result<&LoxValue, String> {
+        // don't move out of hashmap
+        // TODO how to deal with classes or functions...
         self.variable_map.get(name).ok_or_else(|| format!("Undefined variable {}.", name))
     }
 }
@@ -66,7 +68,6 @@ impl Interpreter {
 
     pub fn interpret(&mut self, stmts: &Vec<Statement>) {
         for stmt in stmts {
-            // TODO report error!
             let result = self.evaluate_statement(stmt);
             if let Err(s) = result {
                 panic!("Error {}", s);
@@ -97,8 +98,12 @@ impl Interpreter {
             Expr::GROUPING(g) => self.evaluate_grouping(g),
             Expr::LITERAL(l) => self.evaluate_literal(l),
             Expr::UNARY(u) => self.evaluate_unary(u),
-            Expr::VARIABLE(v) => panic!("Can not _yet_ evaluate variables")
+            Expr::VARIABLE(v) => self.evaluate_variable(v)
         }
+    }
+
+    fn evaluate_variable(&mut self, v: &Variable) -> Result<LoxValue, String> {
+        self.environment.get(&v.name).map(|x| x.clone())
     }
 
     fn evaluate_literal(&mut self, l: &Literal) -> Result<LoxValue, String> {

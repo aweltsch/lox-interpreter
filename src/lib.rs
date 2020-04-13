@@ -39,8 +39,8 @@ pub fn run_prompt() {
 fn run(s: &str) -> Result<LoxValue,String> {
     let tokens = scan_tokens(s);
     let mut parser = Parser::new(tokens);
+    let mut interpreter = Interpreter::new();
     if let Ok(stmts) = parser.parse() {
-        let mut interpreter = Interpreter::new();
         interpreter.interpret(&stmts);
     }
     Err("sad panda".to_string())
