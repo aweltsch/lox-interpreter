@@ -1,15 +1,15 @@
 use std::option::Option;
 use crate::n_peekable::NPeekable;
 
-struct ScannerState<'a> {
+struct Scanner<'a> {
     line: i32,
     cur_lexeme: String,
     char_iter: NPeekable<'a>
 }
 
-impl<'a> ScannerState<'a> {
-    fn new(source: &'a str) -> ScannerState {
-        ScannerState { line: 0, cur_lexeme: String::new(), char_iter: NPeekable::new(source) }
+impl<'a> Scanner<'a> {
+    fn new(source: &'a str) -> Scanner {
+        Scanner { line: 0, cur_lexeme: String::new(), char_iter: NPeekable::new(source) }
     }
 
     fn has_next(&mut self) -> bool {
@@ -170,16 +170,16 @@ impl<'a> ScannerState<'a> {
 
 pub fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut scanner_state = ScannerState::new(source);
+    let mut scanner = Scanner::new(source);
 
-    while scanner_state.has_next() {
+    while scanner.has_next() {
         // start of a new lexeme
-        scanner_state.cur_lexeme.clear();
+        scanner.cur_lexeme.clear();
 
-        let token_type = scanner_state.scan_token();
-        tokens.extend(token_type.map(|t| Token {token_type: t, lexeme: scanner_state.cur_lexeme.to_string(), line: scanner_state.line}));
+        let token_type = scanner.scan_token();
+        tokens.extend(token_type.map(|t| Token {token_type: t, lexeme: scanner.cur_lexeme.to_string(), line: scanner.line}));
     }
-    tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: scanner_state.line});
+    tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: scanner.line});
     tokens
 }
 
