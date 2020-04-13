@@ -177,7 +177,7 @@ fn unequal_to(left: LoxValue, right: LoxValue) -> Result<LoxValue, String> {
 mod test {
     use super::*;
     use crate::scanning::scan_tokens;
-    use crate::parser::parse;
+    use crate::parser::Parser;
 
     #[test]
     fn test_arithmetic() {
@@ -206,7 +206,8 @@ mod test {
                          
         for (original, expected) in test_data {
             let original_tokens = scan_tokens(&original);
-            let stmt = &parse(original_tokens).unwrap()[0];
+            let mut parser = Parser::new(original_tokens);
+            let stmt = &parser.parse().unwrap()[0];
             let actual = evaluate(stmt.get_expr());
 
             assert_eq!(actual.unwrap(), *expected, "Value does not match for: {}", original);

@@ -13,29 +13,30 @@ use crate::expr::Unary;
 pub type ParseError = String;
 
 pub struct Parser {
+    tokens: VecDeque<Token>
 }
 
 impl Parser {
-    fn new() -> Parser {
-        Parser { }
+    // FIXME introduce abstraction layer so we dont consume the tokens
+    pub fn new(tokens: Vec<Token>) -> Parser {
+        Parser { tokens: VecDeque::from(tokens) }
+    }
+
+    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut token_deque = &mut self.tokens;
+        let mut statements = Vec::new();
+        while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
+            if let Ok(stmt) = declaration(&mut token_deque) {
+                statements.push(stmt);
+            }
+            // TODO handle errors?
+        }
+        return Ok(statements);
     }
 }
 
 pub enum Statement {
     PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
-}
-
-// FIXME introduce abstraction layer so we dont consume the tokens
-pub fn parse(tokens: Vec<Token>) -> Result<Vec<Statement>, ParseError> {
-    let mut token_deque = VecDeque::from(tokens);
-    let mut statements = Vec::new();
-    while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
-        if let Ok(stmt) = declaration(&mut token_deque) {
-            statements.push(stmt);
-        }
-        // TODO handle errors?
-    }
-    return Ok(statements);
 }
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {

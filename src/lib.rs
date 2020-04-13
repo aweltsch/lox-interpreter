@@ -3,7 +3,7 @@ use std::path::Path;
 use std::io;
 
 use self::scanning::scan_tokens;
-use self::parser::parse;
+use self::parser::Parser;
 use self::eval::LoxValue;
 use self::interpreter::Interpreter;
 
@@ -39,7 +39,8 @@ pub fn run_prompt() {
 
 fn run(s: &str) -> Result<LoxValue,String> {
     let tokens = scan_tokens(s);
-    if let Ok(stmts) = parse(tokens) {
+    let mut parser = Parser::new(tokens);
+    if let Ok(stmts) = parser.parse() {
         let interpreter = Interpreter::new();
         interpreter.interpret(&stmts);
     }
