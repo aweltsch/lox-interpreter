@@ -7,12 +7,14 @@ use self::parser::parse;
 use self::eval::evaluate;
 use self::eval::LoxValue;
 use self::parser::Statement;
+use self::interpreter::Interpreter;
 
 mod n_peekable;
 mod scanning;
 mod expr;
 mod parser;
 mod eval;
+mod interpreter;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {
@@ -38,12 +40,8 @@ pub fn run_prompt() {
 fn run(s: &str) -> Result<LoxValue,String> {
     let tokens = scan_tokens(s);
     if let Ok(stmts) = parse(tokens) {
-        for stmt in stmts {
-            match stmt {
-                Statement::PRINT(expr) => evaluate(&expr),
-                Statement::EXPRESSION(expr) => evaluate(&expr)
-            };
-        }
+        let interpreter = Interpreter::new();
+        interpreter.interpret(&stmts);
     }
     Err("sad panda".to_string())
 }
