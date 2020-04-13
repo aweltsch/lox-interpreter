@@ -63,7 +63,8 @@ impl<'a> Scanner<'a> {
                     while self.has_next() && !self.next_char_matches('\n') {
                         self.advance();
                     }
-                    None
+                    self.cur_lexeme = "".to_string(); // overwrite lexeme, comments don't matter
+                    Some(TokenType::COMMENT)
                 } else {
                     Some(TokenType::SLASH)
                 },
@@ -177,7 +178,7 @@ pub fn scan_tokens(source: &str) -> Vec<Token> {
         scanner.cur_lexeme.clear();
 
         let token_type = scanner.scan_token();
-        tokens.extend(token_type.map(|t| Token {token_type: t, lexeme: scanner.cur_lexeme.to_string(), line: scanner.line}));
+        tokens.extend(token_type.filter(|t| *t != TokenType::COMMENT).map(|t| Token {token_type: t, lexeme: scanner.cur_lexeme.to_string(), line: scanner.line}));
     }
     tokens.push(Token {token_type: TokenType::EOF, lexeme: "".to_string(), line: scanner.line});
     tokens
@@ -223,6 +224,7 @@ pub enum TokenType {
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
     PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
 
+    COMMENT, // FIXME can I get rid of this w/o complicating the scan_token implementation?
     EOF
 }
 
