@@ -31,6 +31,9 @@ impl Interpreter {
             },
             Statement::EXPRESSION(expr) => {
                 evaluate(expr)
+            },
+            Statement::VAR(name, initializer) => {
+                panic!("not yet implemented!");
             }
         }
     }

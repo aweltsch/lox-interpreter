@@ -6,6 +6,7 @@ use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::expr::Expr;
 use crate::expr::Binary;
+use crate::expr::Literal;
 use crate::expr::Grouping;
 use crate::expr::Unary;
 
@@ -21,7 +22,7 @@ impl Parser {
 }
 
 pub enum Statement {
-    PRINT(Expr), EXPRESSION(Expr)
+    PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
 }
 
 // FIXME introduce abstraction layer so we dont consume the tokens
@@ -50,7 +51,20 @@ fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
 }
 
 fn varDecl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    Err("Not implemented".to_string())
+    if let Some(token) = tokens.pop_front() {
+        if let TokenType::IDENTIFIER(name) = token.token_type {
+            let initializer = if next_token_matches(tokens, &[TokenType::EQUAL]) {
+                expression(tokens)?
+            } else {
+                Expr::LITERAL(Literal::NIL)
+            };
+            Ok(Statement::VAR(name, initializer))
+        } else {
+            Err("Expect variable name.".to_string())
+        }
+    } else {
+        panic!("Programming error, varDecl has been called without any more tokens.");
+    }
 }
 
 fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -198,17 +212,20 @@ fn synchronize(tokens: &mut VecDeque<Token>) {
 
 #[cfg(test)]
 mod tests {
+    // FIXME, maybe this is not such a great idea after all...
     impl Statement {
         fn print_ast(&self) -> String {
             match self {
                 Statement::PRINT(expr) => expr.print_ast(),
-                Statement::EXPRESSION(expr) => expr.print_ast()
+                Statement::EXPRESSION(expr) => expr.print_ast(),
+                Statement::VAR(name, initializer) => initializer.print_ast()
             }
         }
         pub fn get_expr(&self) -> &Expr {
             match self {
                 Statement::PRINT(expr) => expr,
-                Statement::EXPRESSION(expr) => expr
+                Statement::EXPRESSION(expr) => expr,
+                Statement::VAR(_, initializer) => initializer
             }
         }
     }
@@ -234,8 +251,8 @@ mod tests {
         let strings = &["(123 + 456", "12 +", "(123 <= 123) == (233 * 3) =="];
         for input in strings {
             let tokens = scan_tokens(&input);
-            let stmt = parse(tokens);
-            assert!(stmt.is_err(), "No error for string: {}", input);
+            let expr = expression(&mut VecDeque::from(tokens));
+            assert!(expr.is_err(), "No error for string: {}", input);
         }
     }
 
