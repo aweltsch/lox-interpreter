@@ -32,7 +32,7 @@ impl Interpreter {
         Interpreter { environment: Environment::new() }
     }
 
-    pub fn interpret(&self, stmts: &Vec<Statement>) {
+    pub fn interpret(&mut self, stmts: &Vec<Statement>) {
         for stmt in stmts {
             // TODO report error!
             let result = self.evaluate_statement(stmt);
@@ -42,7 +42,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_statement(&self, stmt: &Statement) -> Result<LoxValue, ParseError> {
+    fn evaluate_statement(&mut self, stmt: &Statement) -> Result<LoxValue, ParseError> {
         match stmt {
             Statement::PRINT(expr) => {
                 let result = evaluate(expr)?;
@@ -53,7 +53,8 @@ impl Interpreter {
                 evaluate(expr)
             },
             Statement::VAR(name, initializer) => {
-                panic!("not yet implemented!");
+                self.environment.define(name, evaluate(initializer)?);
+                Ok(LoxValue::NIL)
             }
         }
     }
