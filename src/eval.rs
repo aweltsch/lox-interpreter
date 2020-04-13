@@ -39,7 +39,8 @@ pub fn evaluate(expr: &Expr) -> Result<LoxValue, String> {
         Expr::BINARY(b) => evaluate_binary(b),
         Expr::GROUPING(g) => evaluate_grouping(g),
         Expr::LITERAL(l) => evaluate_literal(l),
-        Expr::UNARY(u) => evaluate_unary(u)
+        Expr::UNARY(u) => evaluate_unary(u),
+        Expr::VARIABLE(v) => panic!("Can not _yet_ evaluate variables")
     }
 }
 

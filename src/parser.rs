@@ -9,6 +9,7 @@ use crate::expr::Binary;
 use crate::expr::Literal;
 use crate::expr::Grouping;
 use crate::expr::Unary;
+use crate::expr::Variable;
 
 pub type ParseError = String;
 
@@ -166,6 +167,8 @@ fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
         if let Some(result) = token.token_type.to_literal() {
             tokens.pop_front(); // consume
             return Ok(Expr::LITERAL(result));
+        } else if let TokenType::IDENTIFIER(name) = &token.token_type {
+            return Ok(Expr::VARIABLE(Variable { name: name.to_string() }));
         } else if let TokenType::LEFT_PAREN = token.token_type {
             tokens.pop_front(); // consume
             let expr = expression(tokens)?;

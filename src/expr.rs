@@ -9,7 +9,8 @@ pub enum Expr {
     BINARY(Binary),
     GROUPING(Grouping),
     LITERAL(Literal),
-    UNARY(Unary)
+    UNARY(Unary),
+    VARIABLE(Variable)
 }
 
 pub struct Binary {
@@ -33,6 +34,10 @@ pub enum Literal {
 pub struct Unary {
     pub operator: Token,
     pub right: Box<Expr>
+}
+
+pub struct Variable {
+    pub name: String
 }
 
 impl TokenType {
@@ -91,6 +96,11 @@ mod tests {
                     result.push_str(&u.operator.lexeme);
                     result.push(' ');
                     result.push_str(&u.right.print_ast());
+                    result.push(')');
+                }
+                Expr::VARIABLE(v) => {
+                    result.push('(');
+                    result.push_str(&v.name);
                     result.push(')');
                 }
             }
