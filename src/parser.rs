@@ -166,8 +166,8 @@ fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     if let Some(token) = tokens.pop_front() {
         if let Some(result) = token.token_type.to_literal() {
             return Ok(Expr::LITERAL(result));
-        } else if let TokenType::IDENTIFIER(name) = &token.token_type {
-            return Ok(Expr::VARIABLE(Variable { name: name.to_string() }));
+        } else if let TokenType::IDENTIFIER(name) = token.token_type {
+            return Ok(Expr::VARIABLE(Variable { name: name }));
         } else if let TokenType::LEFT_PAREN = token.token_type {
             let expr = expression(tokens)?;
 
