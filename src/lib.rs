@@ -4,14 +4,13 @@ use std::io;
 
 use self::scanning::scan_tokens;
 use self::parser::Parser;
-use self::eval::LoxValue;
+use self::interpreter::LoxValue;
 use self::interpreter::Interpreter;
 
 mod n_peekable;
 mod scanning;
 mod expr;
 mod parser;
-mod eval;
 mod interpreter;
 
 pub fn run_file(path: &Path) {
