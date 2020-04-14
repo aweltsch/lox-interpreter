@@ -11,7 +11,8 @@ pub enum Expr {
     GROUPING(Grouping),
     LITERAL(Literal),
     UNARY(Unary),
-    VARIABLE(Variable)
+    VARIABLE(Variable),
+    ASSIGNMENT(Assignment)
 }
 
 #[derive(Debug)]
@@ -44,6 +45,12 @@ pub struct Unary {
 #[derive(Debug)]
 pub struct Variable {
     pub name: String
+}
+
+#[derive(Debug)]
+pub struct Assignment {
+    pub name: String,
+    pub value: Box<Expr>
 }
 
 impl TokenType {
@@ -107,6 +114,15 @@ mod tests {
                 Expr::VARIABLE(v) => {
                     result.push('(');
                     result.push_str(&v.name);
+                    result.push(')');
+                },
+                Expr::ASSIGNMENT(a) => {
+                    result.push('(');
+                    result.push_str("assignment");
+                    result.push(' ');
+                    result.push_str(&a.name);
+                    result.push(' ');
+                    result.push_str(&a.value.print_ast());
                     result.push(')');
                 }
             }

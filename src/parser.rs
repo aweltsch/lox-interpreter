@@ -5,6 +5,7 @@ use std::option::Option;
 use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::expr::Expr;
+use crate::expr::Assignment;
 use crate::expr::Binary;
 use crate::expr::Literal;
 use crate::expr::Grouping;
@@ -104,7 +105,22 @@ fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<()> {
 }
 
 fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    equality(tokens)
+    assignment(tokens)
+}
+
+fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
+    // FIXME
+    let expr = equality(tokens);
+    if next_token_matches(tokens, &[TokenType::EQUAL]) {
+        tokens.pop_front(); // consume "="
+        let value = assignment(tokens);
+        if let Ok(Expr::VARIABLE(v)) = &value {
+            return Ok(Expr::ASSIGNMENT(Assignment { name: v.name.clone(), value: Box::new(value?) }));
+        } else {
+            return Err("Invalid assignment target.".to_string());
+        }
+    }
+    return expr;
 }
 
 fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {

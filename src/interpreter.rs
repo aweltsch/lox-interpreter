@@ -59,6 +59,15 @@ impl Environment {
         // TODO how to deal with classes or functions...
         self.variable_map.get(name).ok_or_else(|| format!("Undefined variable {}.", name))
     }
+
+    pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<LoxValue, String> {
+        if self.variable_map.contains_key(name) {
+            self.variable_map.insert(name.to_string(), value.clone());
+            Ok(value)
+        } else {
+            Err(format!("Undefined variable '{}'.", name))
+        }
+    }
 }
 
 impl Interpreter {
@@ -98,8 +107,14 @@ impl Interpreter {
             Expr::GROUPING(g) => self.evaluate_grouping(g),
             Expr::LITERAL(l) => self.evaluate_literal(l),
             Expr::UNARY(u) => self.evaluate_unary(u),
-            Expr::VARIABLE(v) => self.evaluate_variable(v)
+            Expr::VARIABLE(v) => self.evaluate_variable(v),
+            Expr::ASSIGNMENT(a) => self.evaluate_assignment(a)
         }
+    }
+
+    fn evaluate_assignment(&mut self, a: &Assignment) -> Result<LoxValue, String> {
+        let value = self.evaluate(&a.value)?;
+        self.environment.assign(&a.name, value)
     }
 
     fn evaluate_variable(&mut self, v: &Variable) -> Result<LoxValue, String> {
