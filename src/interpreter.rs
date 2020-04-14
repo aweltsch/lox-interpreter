@@ -280,7 +280,8 @@ mod test {
     fn test_eval() {
         let test_data = &[("13 + 87;", LoxValue::NUMBER(100.0)), 
             ("-(3 + 2) / 2;", LoxValue::NUMBER(-2.5)),
-            ("!(3 >= 2) == true;", LoxValue::BOOLEAN(false))
+            ("!(3 >= 2) == true;", LoxValue::BOOLEAN(false)),
+            ("var a = 2;", LoxValue::NUMBER(2.0))
         ];
 
         for (original, expected) in test_data {
@@ -291,6 +292,18 @@ mod test {
             let actual = interpreter.evaluate(stmt.get_expr());
 
             assert_eq!(actual.unwrap(), *expected, "Value does not match for: {}", original);
+        }
+    }
+    #[test]
+    fn test_script() {
+        let script = "var a = 1; a = 3; print a;";
+        let expected_values = &[LoxValue::NIL, LoxValue::NUMBER(3.0), LoxValue::NUMBER(3.0)];
+        let original_tokens = scan_tokens(&script);
+        let mut parser = Parser::new(original_tokens);
+        let stmts = &parser.parse().unwrap();
+        let mut interpreter = Interpreter::new();
+        for (stmt, expected_value) in stmts.iter().zip(expected_values) {
+            assert_eq!(interpreter.evaluate_statement(stmt).unwrap(), *expected_value);
         }
     }
 }

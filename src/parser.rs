@@ -28,10 +28,8 @@ impl Parser {
         let mut token_deque = &mut self.tokens;
         let mut statements = Vec::new();
         while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
-            if let Ok(stmt) = declaration(&mut token_deque) {
-                statements.push(stmt);
-            }
-            // TODO handle errors?
+            let stmt = declaration(&mut token_deque)?;
+            statements.push(stmt);
         }
         return Ok(statements);
     }
@@ -109,12 +107,11 @@ fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
 }
 
 fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    // FIXME
     let expr = equality(tokens);
     if next_token_matches(tokens, &[TokenType::EQUAL]) {
         tokens.pop_front(); // consume "="
         let value = assignment(tokens);
-        if let Ok(Expr::VARIABLE(v)) = &value {
+        if let Ok(Expr::VARIABLE(v)) = &expr {
             return Ok(Expr::ASSIGNMENT(Assignment { name: v.name.clone(), value: Box::new(value?) }));
         } else {
             return Err("Invalid assignment target.".to_string());
