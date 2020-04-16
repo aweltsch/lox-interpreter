@@ -140,6 +140,9 @@ impl Interpreter {
 
     fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) {
         self.environment.add_scope();
+        for stmt in stmts {
+            self.evaluate_statement(stmt);
+        }
         self.environment.pop_scope();
     }
 
