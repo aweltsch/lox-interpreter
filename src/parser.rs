@@ -37,7 +37,7 @@ impl Parser {
 
 #[derive(Debug)]
 pub enum Statement {
-    PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
+    BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
 }
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -72,15 +72,31 @@ fn var_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
 }
 
 fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let is_print_statement = next_token_matches(tokens, &[TokenType::PRINT]);
-    let stmt = if is_print_statement {
+    let stmt = if next_token_matches(tokens, &[TokenType::PRINT]) {
         tokens.pop_front();
         print_statement(tokens)?
+    } else if next_token_matches(tokens, &[TokenType::LEFT_BRACE]) {
+        block(tokens)?
     } else {
         expression_statement(tokens)?
     };
 
     Ok(stmt)
+}
+
+fn block(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::LEFT_BRACE);
+    let mut stmts = Vec::new();
+    while tokens.len() > 0 && !next_token_matches(tokens, &[TokenType::RIGHT_BRACE]) {
+        stmts.push(Box::new(declaration(tokens)?));
+    }
+
+    if next_token_matches(tokens, &[TokenType::RIGHT_BRACE]) {
+        tokens.pop_front();
+        Ok(Statement::BLOCK(stmts))
+    } else {
+        Err("Expect '}' after block.".to_string())
+    }
 }
 
 fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -230,20 +246,13 @@ fn synchronize(tokens: &mut VecDeque<Token>) {
 
 #[cfg(test)]
 mod tests {
-    // FIXME, maybe this is not such a great idea after all...
     impl Statement {
-        fn print_ast(&self) -> String {
-            match self {
-                Statement::PRINT(expr) => expr.print_ast(),
-                Statement::EXPRESSION(expr) => expr.print_ast(),
-                Statement::VAR(name, initializer) => initializer.print_ast()
-            }
-        }
         pub fn get_expr(&self) -> &Expr {
             match self {
                 Statement::PRINT(expr) => expr,
                 Statement::EXPRESSION(expr) => expr,
-                Statement::VAR(_, initializer) => initializer
+                Statement::VAR(_, initializer) => initializer,
+                Statement::BLOCK(_) => panic!("no single expression for block statements")
             }
         }
     }
@@ -275,7 +284,6 @@ mod tests {
     }
 
     #[test]
-    // FIXME this implementation is convenient, but integrates the scan_tokens component...
     fn synchronize_discards_elements() {
         let original = &["asdf; 123 + 345", "fun something()", "what fun something()", "; class what()", "a statement();"];
         let expected = &["123 + 345", "fun something()", "fun something()", "class what()", ""];

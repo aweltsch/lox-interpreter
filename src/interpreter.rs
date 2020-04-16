@@ -42,22 +42,32 @@ pub struct Interpreter {
 }
 
 pub struct Environment {
-    variable_map: HashMap<String, LoxValue>
+    variable_map: HashMap<String, LoxValue>,
+    enclosing: Option<Box<Environment>>
 }
 
 impl Environment {
     pub fn new() -> Self {
-        Environment { variable_map: HashMap::new() }
+        Environment { variable_map: HashMap::new(), enclosing: None }
+    }
+
+    pub fn new_scope(enclosing: Box<Environment>) -> Self {
+        Environment { variable_map: HashMap::new(), enclosing: Some(enclosing) }
     }
 
     pub fn define(&mut self, name: &str, value: LoxValue) {
         self.variable_map.insert(name.to_string(), value);
     }
 
-    pub fn get(&self, name: &str) -> Result<&LoxValue, String> {
+    // get and assign make me cry...
+    pub fn get(&self, name: &str) -> Result<LoxValue, String> {
         // don't move out of hashmap
         // TODO how to deal with classes or functions...
-        self.variable_map.get(name).ok_or_else(|| format!("Undefined variable {}.", name))
+        // FIXME extremely ugly...
+        match self.variable_map.get(name) {
+            Some(value) => Ok(value.clone()),
+            None => self.enclosing.as_ref().map(|x| x.get(name)).unwrap_or_else(|| Err(format!("Undefined variable {}.", name)))
+        }
     }
 
     pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<LoxValue, String> {
@@ -65,7 +75,7 @@ impl Environment {
             self.variable_map.insert(name.to_string(), value.clone());
             Ok(value)
         } else {
-            Err(format!("Undefined variable '{}'.", name))
+            self.enclosing.as_mut().map(|x| x.assign(name, value.clone())).unwrap_or_else(|| Err(format!("Undefined variable {}.", name)))
         }
     }
 }
@@ -98,6 +108,10 @@ impl Interpreter {
                 let value = self.evaluate(initializer)?;
                 self.environment.define(name, value);
                 Ok(LoxValue::NIL)
+            },
+            Statement::BLOCK(stmts) => {
+                self.execute_block(stmts);
+                Ok(LoxValue::NIL)
             }
         }
     }
@@ -112,13 +126,19 @@ impl Interpreter {
         }
     }
 
+    fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) {
+        let prev_env = &self.environment;
+        let new_env = Environment::new_scope(prev_env);
+        self.environment = new_env;
+    }
+
     fn evaluate_assignment(&mut self, a: &Assignment) -> Result<LoxValue, String> {
         let value = self.evaluate(&a.value)?;
         self.environment.assign(&a.name, value)
     }
 
     fn evaluate_variable(&mut self, v: &Variable) -> Result<LoxValue, String> {
-        self.environment.get(&v.name).map(|x| x.clone())
+        self.environment.get(&v.name).map(|x| x)
     }
 
     fn evaluate_literal(&mut self, l: &Literal) -> Result<LoxValue, String> {
@@ -296,7 +316,7 @@ mod test {
     }
     #[test]
     fn test_script() {
-        let script = "var a = 1; a = 3; print a;";
+        let script = "var a = 1; a = 3; print a; { var a = 2; }";
         let expected_values = &[LoxValue::NIL, LoxValue::NUMBER(3.0), LoxValue::NUMBER(3.0)];
         let original_tokens = scan_tokens(&script);
         let mut parser = Parser::new(original_tokens);
