@@ -42,41 +42,53 @@ pub struct Interpreter {
 }
 
 pub struct Environment {
-    variable_map: HashMap<String, LoxValue>,
-    enclosing: Option<Box<Environment>>
+    variable_maps: Vec<HashMap<String, LoxValue>>
 }
 
 impl Environment {
     pub fn new() -> Self {
-        Environment { variable_map: HashMap::new(), enclosing: None }
+        Environment { variable_maps: vec![HashMap::new()] }
     }
 
-    pub fn new_scope(enclosing: Box<Environment>) -> Self {
-        Environment { variable_map: HashMap::new(), enclosing: Some(enclosing) }
+    fn is_valid_environment(&self) -> bool {
+        self.variable_maps.len() > 0
     }
 
     pub fn define(&mut self, name: &str, value: LoxValue) {
-        self.variable_map.insert(name.to_string(), value);
+        assert!(self.is_valid_environment());
+        self.variable_maps.last_mut().unwrap().insert(name.to_string(), value);
     }
 
-    // get and assign make me cry...
     pub fn get(&self, name: &str) -> Result<LoxValue, String> {
-        // don't move out of hashmap
-        // TODO how to deal with classes or functions...
-        // FIXME extremely ugly...
-        match self.variable_map.get(name) {
-            Some(value) => Ok(value.clone()),
-            None => self.enclosing.as_ref().map(|x| x.get(name)).unwrap_or_else(|| Err(format!("Undefined variable {}.", name)))
+        assert!(self.is_valid_environment());
+        for scope in self.variable_maps.iter().rev() {
+            if let Some(val) = scope.get(name) {
+                return Ok(val.clone());
+            }
         }
+        Err(format!("Undefined variable {}.", name))
     }
 
     pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<LoxValue, String> {
-        if self.variable_map.contains_key(name) {
-            self.variable_map.insert(name.to_string(), value.clone());
-            Ok(value)
-        } else {
-            self.enclosing.as_mut().map(|x| x.assign(name, value.clone())).unwrap_or_else(|| Err(format!("Undefined variable {}.", name)))
+        assert!(self.is_valid_environment());
+        for scope in self.variable_maps.iter_mut().rev() {
+            if scope.contains_key(name) {
+                scope.insert(name.to_string(), value.clone());
+                return Ok(value);
+            }
         }
+        Err(format!("Undefined variable {}.", name))
+    }
+
+    pub fn add_scope(&mut self) {
+        assert!(self.is_valid_environment());
+        self.variable_maps.push(HashMap::new());
+    }
+
+    pub fn pop_scope(&mut self) {
+        assert!(self.is_valid_environment());
+        self.variable_maps.pop();
+        assert!(self.is_valid_environment());
     }
 }
 
@@ -127,9 +139,8 @@ impl Interpreter {
     }
 
     fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) {
-        let prev_env = &self.environment;
-        let new_env = Environment::new_scope(prev_env);
-        self.environment = new_env;
+        self.environment.add_scope();
+        self.environment.pop_scope();
     }
 
     fn evaluate_assignment(&mut self, a: &Assignment) -> Result<LoxValue, String> {
