@@ -43,9 +43,9 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub struct IfStatement {
-    condition: Expr,
-    then_branch: Box<Statement>,
-    else_branch: Option<Box<Statement>>
+    pub condition: Expr,
+    pub then_branch: Box<Statement>,
+    pub else_branch: Option<Box<Statement>>
 }
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {

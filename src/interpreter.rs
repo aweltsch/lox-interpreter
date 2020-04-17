@@ -23,6 +23,13 @@ impl LoxValue {
             _ => LoxValue::BOOLEAN(true)
         }
     }
+
+    fn to_native_boolean(&self) -> bool {
+        match self.to_boolean() {
+            LoxValue::BOOLEAN(b) => b,
+            _ => panic!("programming error, to boolean should always result in LoxValue::BOOLEAN")
+        }
+    }
 }
 
 impl fmt::Display for LoxValue {
@@ -125,7 +132,19 @@ impl Interpreter {
                 self.execute_block(stmts);
                 Ok(LoxValue::NIL)
             },
-            Statement::IF(_) => panic!("not implemented".to_string())
+            Statement::IF(if_stmt) => {
+                let condition_outcome = self.evaluate(&if_stmt.condition)?;
+
+                if condition_outcome.to_native_boolean() {
+                    self.evaluate_statement(&if_stmt.then_branch)
+                } else {
+                    if let Some(else_branch) = &if_stmt.else_branch {
+                        self.evaluate_statement(else_branch)
+                    } else {
+                        Ok(LoxValue::NIL)
+                    }
+                }
+            }
         }
     }
     pub fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue, String> {
