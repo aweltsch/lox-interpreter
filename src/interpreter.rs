@@ -38,7 +38,7 @@ impl fmt::Display for LoxValue {
             LoxValue::NIL => "nil".to_string(),
             LoxValue::BOOLEAN(b) => b.to_string(),
             LoxValue::NUMBER(n) => n.to_string(),
-            LoxValue::STRING(s) => format!("\"{}\"", s)
+            LoxValue::STRING(s) => format!("{}", s)
         };
         write!(f, "{}", output)
     }
