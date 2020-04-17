@@ -10,6 +10,7 @@ pub enum Expr {
     BINARY(Binary),
     GROUPING(Grouping),
     LITERAL(Literal),
+    LOGICAL(Logical),
     UNARY(Unary),
     VARIABLE(Variable),
     ASSIGNMENT(Assignment)
@@ -22,7 +23,6 @@ pub struct Binary {
     pub right: Box<Expr>
 }
 
-
 #[derive(Debug)]
 pub struct Grouping {
     pub expression: Box<Expr>
@@ -34,6 +34,13 @@ pub enum Literal {
     NUMBER(f64),
     BOOLEAN(bool),
     NIL
+}
+
+#[derive(Debug)]
+pub struct Logical {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>
 }
 
 #[derive(Debug)]
@@ -103,6 +110,15 @@ mod tests {
                 },
                 Expr::LITERAL(l) => {
                     result.push_str(&l.to_string());
+                },
+                Expr::LOGICAL(l) => {
+                    result.push('(');
+                    result.push_str(&l.operator.lexeme);
+                    result.push(' ');
+                    result.push_str(&l.left.print_ast());
+                    result.push(' ');
+                    result.push_str(&l.right.print_ast());
+                    result.push(')');
                 },
                 Expr::UNARY(u) => {
                     result.push('(');

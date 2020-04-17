@@ -163,6 +163,14 @@ fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     return expr;
 }
 
+fn logic_or(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
+    Err("not implemented".to_string())
+}
+
+fn logic_and(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
+    Err("not implemented".to_string())
+}
+
 fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
     let mut expr = comparison(tokens)?;
 

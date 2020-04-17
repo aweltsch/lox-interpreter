@@ -152,6 +152,7 @@ impl Interpreter {
             Expr::BINARY(b) => self.evaluate_binary(b),
             Expr::GROUPING(g) => self.evaluate_grouping(g),
             Expr::LITERAL(l) => self.evaluate_literal(l),
+            Expr::LOGICAL(l) => panic!("not implemented"),
             Expr::UNARY(u) => self.evaluate_unary(u),
             Expr::VARIABLE(v) => self.evaluate_variable(v),
             Expr::ASSIGNMENT(a) => self.evaluate_assignment(a)
