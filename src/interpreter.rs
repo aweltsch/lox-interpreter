@@ -124,7 +124,8 @@ impl Interpreter {
             Statement::BLOCK(stmts) => {
                 self.execute_block(stmts);
                 Ok(LoxValue::NIL)
-            }
+            },
+            Statement::IF(_) => panic!("not implemented".to_string())
         }
     }
     pub fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue, String> {
@@ -308,6 +309,10 @@ mod test {
         assert_eq!(less_or_equal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(false));
         assert_eq!(equal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(false));
         assert_eq!(unequal_to(LoxValue::NUMBER(3.0), LoxValue::NUMBER(2.0)).unwrap(), LoxValue::BOOLEAN(true));
+    }
+
+    #[test]
+    fn test_conditional() {
     }
 
     #[test]

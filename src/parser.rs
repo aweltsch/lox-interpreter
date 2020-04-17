@@ -37,7 +37,15 @@ impl Parser {
 
 #[derive(Debug)]
 pub enum Statement {
-    BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr)
+    BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
+    IF(IfStatement)
+}
+
+#[derive(Debug)]
+pub struct IfStatement {
+    condition: Expr,
+    then_branch: Box<Statement>,
+    else_branch: Option<Box<Statement>>
 }
 
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -77,6 +85,8 @@ fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
         print_statement(tokens)?
     } else if next_token_matches(tokens, &[TokenType::LEFT_BRACE]) {
         block(tokens)?
+    } else if next_token_matches(tokens, &[TokenType::IF]) {
+        if_statement(tokens)?
     } else {
         expression_statement(tokens)?
     };
@@ -102,6 +112,23 @@ fn block(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
 fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     let expr = expression(tokens)?;
     consume(tokens, TokenType::SEMICOLON).map(|_| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
+}
+
+fn if_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::IF);
+    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after if.".to_string())?;
+    let condition = expression(tokens)?;
+    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+
+    let then_branch = Box::new(statement(tokens)?);
+    let else_branch = if next_token_matches(tokens, &[TokenType::ELSE]) {
+        tokens.pop_front();
+        Some(Box::new(statement(tokens)?))
+    } else {
+        None
+    };
+
+    Ok(Statement::IF(IfStatement { condition: condition, else_branch: else_branch, then_branch: then_branch }))
 }
 
 fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -252,7 +279,8 @@ mod tests {
                 Statement::PRINT(expr) => expr,
                 Statement::EXPRESSION(expr) => expr,
                 Statement::VAR(_, initializer) => initializer,
-                Statement::BLOCK(_) => panic!("no single expression for block statements")
+                Statement::BLOCK(_) => panic!("no single expression for block statements"),
+                Statement::IF(_) => panic!("no single expression for if statements")
             }
         }
     }
