@@ -1,0 +1,10 @@
+var beverage = "espresso";
+print beverage; // "espresso".
+var a = 1;
+var b = 2;
+print a = 2;
+print a + b;
+var c;
+a = 3;
+a + b = c; // this should be an error
+(a) = 3; // this should be an error
