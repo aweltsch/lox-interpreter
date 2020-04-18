@@ -152,7 +152,7 @@ impl Interpreter {
             Expr::BINARY(b) => self.evaluate_binary(b),
             Expr::GROUPING(g) => self.evaluate_grouping(g),
             Expr::LITERAL(l) => self.evaluate_literal(l),
-            Expr::LOGICAL(l) => panic!("not implemented"),
+            Expr::LOGICAL(l) => self.evaluate_logical(l),
             Expr::UNARY(u) => self.evaluate_unary(u),
             Expr::VARIABLE(v) => self.evaluate_variable(v),
             Expr::ASSIGNMENT(a) => self.evaluate_assignment(a)
@@ -183,6 +183,21 @@ impl Interpreter {
             Literal::NUMBER(n) => LoxValue::NUMBER(*n),
             Literal::STRING(s) => LoxValue::STRING(s.clone())
         })
+    }
+
+    fn evaluate_logical(&mut self, l: &Logical) -> Result<LoxValue, String> {
+        let left = self.evaluate(&l.left)?;
+        if l.operator.token_type == TokenType::OR {
+            if left.to_native_boolean() {
+                return Ok(left);
+            }
+        } else {
+            if !left.to_native_boolean() {
+                return Ok(left);
+            }
+        }
+
+        self.evaluate(&l.right)
     }
 
     fn evaluate_binary(&mut self, b: &Binary) -> Result<LoxValue, String> {
