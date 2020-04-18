@@ -8,6 +8,7 @@ use crate::expr::Expr;
 use crate::expr::Assignment;
 use crate::expr::Binary;
 use crate::expr::Literal;
+use crate::expr::Logical;
 use crate::expr::Grouping;
 use crate::expr::Unary;
 use crate::expr::Variable;
@@ -150,7 +151,7 @@ fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
 }
 
 fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let expr = equality(tokens);
+    let expr = logic_or(tokens);
     if next_token_matches(tokens, &[TokenType::EQUAL]) {
         tokens.pop_front(); // consume "="
         let value = assignment(tokens);
@@ -164,11 +165,27 @@ fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
 }
 
 fn logic_or(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    Err("not implemented".to_string())
+    let mut expr = logic_and(tokens)?;
+    while next_token_matches(tokens, &[TokenType::OR]) {
+        let operator = tokens.pop_front().unwrap();
+        let right = logic_and(tokens)?;
+        expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
+
+    }
+
+    return Ok(expr);
 }
 
 fn logic_and(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    Err("not implemented".to_string())
+    let mut expr = equality(tokens)?;
+    while next_token_matches(tokens, &[TokenType::AND]) {
+        let operator = tokens.pop_front().unwrap();
+        let right = equality(tokens)?;
+        expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
+
+    }
+
+    return Ok(expr);
 }
 
 fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
