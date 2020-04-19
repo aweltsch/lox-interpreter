@@ -90,6 +90,8 @@ fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
         if_statement(tokens)?
     } else if next_token_matches(tokens, &[TokenType::WHILE]) {
         while_statement(tokens)?
+    } else if next_token_matches(tokens, &[TokenType::FOR]) {
+        for_statement(tokens)?
     } else {
         expression_statement(tokens)?
     };
@@ -141,6 +143,49 @@ fn while_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError
     consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
     let body = statement(tokens)?;
     Ok(Statement::WHILE(condition, Box::new(body)))
+}
+
+fn for_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::FOR);
+    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after 'for'.".to_string())?;
+    let initializer = if next_token_matches(tokens, &[TokenType::VAR]) {
+        tokens.pop_front(); // FIXME nasty
+        Some(var_decl(tokens)?)
+    } else if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
+        tokens.pop_front();
+        None
+    } else {
+        Some(expression_statement(tokens)?)
+    };
+    let condition = if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
+        tokens.pop_front();
+        Expr::LITERAL(Literal::BOOLEAN(true))
+    } else {
+        expression(tokens)?
+    };
+    consume(tokens, TokenType::SEMICOLON).ok_or("Expect ';' after loop condition.".to_string());
+
+    let increment = if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
+        tokens.pop_front();
+        None
+    } else {
+        Some(expression(tokens)?)
+    };
+
+    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+    let for_body = statement(tokens)?;
+    let mut for_statements = vec![Box::new(for_body)];
+    if let Some(expr) = increment {
+        for_statements.push(Box::new(Statement::EXPRESSION(expr)));
+    }
+
+    let body = Statement::WHILE(condition, Box::new(Statement::BLOCK(for_statements)));
+    if let Some(init_stmt) = initializer {
+        let stmts = vec![Box::new(init_stmt), Box::new(body)];
+        Ok(Statement::BLOCK(stmts))
+    } else {
+        Ok(body)
+    }
 }
 
 fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
