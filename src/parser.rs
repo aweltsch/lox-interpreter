@@ -39,7 +39,7 @@ impl Parser {
 #[derive(Debug)]
 pub enum Statement {
     BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
-    IF(IfStatement)
+    IF(IfStatement), WHILE(Expr, Box<Statement>)
 }
 
 #[derive(Debug)]
@@ -88,6 +88,8 @@ fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
         block(tokens)?
     } else if next_token_matches(tokens, &[TokenType::IF]) {
         if_statement(tokens)?
+    } else if next_token_matches(tokens, &[TokenType::WHILE]) {
+        while_statement(tokens)?
     } else {
         expression_statement(tokens)?
     };
@@ -130,6 +132,15 @@ fn if_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
     };
 
     Ok(Statement::IF(IfStatement { condition: condition, else_branch: else_branch, then_branch: then_branch }))
+}
+
+fn while_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::WHILE);
+    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after while.".to_string())?;
+    let condition = expression(tokens)?;
+    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+    let body = statement(tokens)?;
+    Ok(Statement::WHILE(condition, Box::new(body)))
 }
 
 fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
@@ -298,18 +309,6 @@ fn synchronize(tokens: &mut VecDeque<Token>) {
 
 #[cfg(test)]
 mod tests {
-    impl Statement {
-        pub fn get_expr(&self) -> &Expr {
-            match self {
-                Statement::PRINT(expr) => expr,
-                Statement::EXPRESSION(expr) => expr,
-                Statement::VAR(_, initializer) => initializer,
-                Statement::BLOCK(_) => panic!("no single expression for block statements"),
-                Statement::IF(_) => panic!("no single expression for if statements")
-            }
-        }
-    }
-
     use super::*;
     use crate::scanning::scan_tokens;
 

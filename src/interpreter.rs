@@ -144,6 +144,12 @@ impl Interpreter {
                         Ok(LoxValue::NIL)
                     }
                 }
+            },
+            Statement::WHILE(condition, body) => {
+                while self.evaluate(&condition)?.to_native_boolean() {
+                    self.evaluate_statement(&body)?;
+                }
+                Ok(LoxValue::NIL)
             }
         }
     }
@@ -347,15 +353,11 @@ mod test {
     }
 
     #[test]
-    fn test_conditional() {
-    }
-
-    #[test]
     fn test_eval() {
         let test_data = &[("13 + 87;", LoxValue::NUMBER(100.0)), 
             ("-(3 + 2) / 2;", LoxValue::NUMBER(-2.5)),
             ("!(3 >= 2) == true;", LoxValue::BOOLEAN(false)),
-            ("var a = 2;", LoxValue::NUMBER(2.0))
+            ("2;", LoxValue::NUMBER(2.0))
         ];
 
         for (original, expected) in test_data {
@@ -363,11 +365,12 @@ mod test {
             let mut parser = Parser::new(original_tokens);
             let stmt = &parser.parse().unwrap()[0];
             let mut interpreter = Interpreter::new();
-            let actual = interpreter.evaluate(stmt.get_expr());
+            let actual = interpreter.evaluate_statement(stmt);
 
             assert_eq!(actual.unwrap(), *expected, "Value does not match for: {}", original);
         }
     }
+
     #[test]
     fn test_script() {
         let script = "var a = 1; a = 3; print a; { var a = 2; }";
