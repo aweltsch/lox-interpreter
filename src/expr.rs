@@ -148,6 +148,15 @@ mod tests {
                     result.push(' ');
                     result.push_str(&a.value.print_ast());
                     result.push(')');
+                },
+                Expr::CALL(c) => {
+                    result.push('(');
+                    result.push_str(&c.callee.print_ast());
+                    for arg in &c.arguments {
+                        result.push(' ');
+                        result.push_str(&arg.print_ast());
+                    }
+                    result.push(')');
                 }
             }
             result

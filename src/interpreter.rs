@@ -2,6 +2,7 @@ use std::fmt;
 use std::collections::HashMap;
 
 use crate::expr::*;
+use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::parser::Statement;
 use crate::parser::ParseError;
@@ -12,7 +13,46 @@ pub enum LoxValue {
     NIL,
     BOOLEAN(bool),
     NUMBER(f64),
-    STRING(String)
+    STRING(String),
+    FUNCTION(LoxFunction)
+}
+
+
+#[derive(Debug)]
+pub enum LoxFunction {
+    NATIVE,
+    INTERPRETER(Token, Vec<Token>, Vec<Statement>)
+}
+
+// the clone operation does not make sense for lox functions...
+// I need to rethink the structure of LoxValue!!!
+impl Clone for LoxFunction {
+    fn clone(&self) -> Self {
+        LoxFunction::NATIVE // FIXME!!!
+    }
+}
+
+impl PartialEq for LoxFunction {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            LoxFunction::NATIVE => other == &LoxFunction::NATIVE,
+            LoxFunction::INTERPRETER(t_self, _, _) => if let LoxFunction::INTERPRETER(t_other, _, _) = other {
+                t_self == t_other
+            } else {
+                false
+            }
+        }
+    }
+}
+
+
+
+pub type RuntimeError = String;
+
+impl LoxFunction {
+    pub fn call(&self) -> Result<LoxValue, RuntimeError> {
+        Err("not implemented".to_string())
+    }
 }
 
 impl LoxValue {
@@ -38,7 +78,8 @@ impl fmt::Display for LoxValue {
             LoxValue::NIL => "nil".to_string(),
             LoxValue::BOOLEAN(b) => b.to_string(),
             LoxValue::NUMBER(n) => n.to_string(),
-            LoxValue::STRING(s) => format!("{}", s)
+            LoxValue::STRING(s) => format!("{}", s),
+            LoxValue::FUNCTION(f) => panic!("not implemented")
         };
         write!(f, "{}", output)
     }
