@@ -13,7 +13,8 @@ pub enum Expr {
     LOGICAL(Logical),
     UNARY(Unary),
     VARIABLE(Variable),
-    ASSIGNMENT(Assignment)
+    ASSIGNMENT(Assignment),
+    CALL(Call)
 }
 
 #[derive(Debug)]
@@ -58,6 +59,13 @@ pub struct Variable {
 pub struct Assignment {
     pub name: String,
     pub value: Box<Expr>
+}
+
+#[derive(Debug)]
+pub struct Call {
+    pub callee: Box<Expr>,
+    pub paren: Token,
+    pub arguments: Vec<Expr>
 }
 
 impl TokenType {

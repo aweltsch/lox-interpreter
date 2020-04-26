@@ -161,7 +161,8 @@ impl Interpreter {
             Expr::LOGICAL(l) => self.evaluate_logical(l),
             Expr::UNARY(u) => self.evaluate_unary(u),
             Expr::VARIABLE(v) => self.evaluate_variable(v),
-            Expr::ASSIGNMENT(a) => self.evaluate_assignment(a)
+            Expr::ASSIGNMENT(a) => self.evaluate_assignment(a),
+            Expr::CALL(c) => self.evaluate_function_call(c)
         }
     }
 
@@ -239,6 +240,14 @@ impl Interpreter {
                 panic!("unreachable code");
             }
         }
+    }
+
+    fn evaluate_function_call(&mut self, c: &Call) -> Result<LoxValue, String> {
+        let mut arguments = Vec::new();
+        for a in &c.arguments {
+            arguments.push(self.evaluate(a)?);
+        }
+        Err("".to_string())
     }
 
 }

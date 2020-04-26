@@ -7,6 +7,7 @@ use crate::scanning::TokenType;
 use crate::expr::Expr;
 use crate::expr::Assignment;
 use crate::expr::Binary;
+use crate::expr::Call;
 use crate::expr::Literal;
 use crate::expr::Logical;
 use crate::expr::Grouping;
@@ -193,10 +194,9 @@ fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, Parse
     consume(tokens, TokenType::SEMICOLON).map(|_| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
 }
 
-fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<()> {
+fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<Token> {
     if next_token_matches(tokens, &[token_type]) {
-        tokens.pop_front();
-        Some(())
+        tokens.pop_front()
     } else {
         None
     }
@@ -299,7 +299,38 @@ fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
             return Ok(Expr::UNARY(Unary {operator: operator, right: Box::new(right)}))
         }
     }
-    primary(tokens)
+    call(tokens)
+}
+
+fn call(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
+    let mut expr = primary(tokens)?;
+    while true {
+        if next_token_matches(tokens, &[TokenType::LEFT_PAREN]) {
+            expr = finish_call(tokens, expr)?;
+        } else {
+            break;
+        }
+    }
+    Ok(expr)
+}
+
+fn finish_call(tokens: &mut VecDeque<Token>, expr: Expr) -> Result<Expr, ParseError> {
+    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::LEFT_PAREN);
+    let mut arguments = Vec::new();
+    if (!next_token_matches(tokens, &[TokenType::RIGHT_PAREN])) {
+        while true {
+            // NOTE: we do not introduce a maximum arguments size here!
+            arguments.push(expression(tokens)?);
+            if !next_token_matches(tokens, &[TokenType::COMMA]) {
+                break;
+            }
+            assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::COMMA);
+        }
+    }
+
+    let paren = consume(tokens, TokenType::SEMICOLON).ok_or("Expect ';' after expression.".to_string())?;
+
+    Ok(Expr::CALL(Call {callee: Box::new(expr), paren: paren, arguments: arguments}))
 }
 
 fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
