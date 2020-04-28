@@ -33,7 +33,7 @@ impl PartialEq for dyn LoxCallable {
 impl fmt::Debug for dyn LoxCallable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // default implementation!
-        f.debug_struct("<native function>").finish()
+        f.debug_struct("<native fn>").finish()
     }
 
 }
@@ -66,8 +66,20 @@ impl PartialEq for LoxFunction {
 pub type RuntimeError = String;
 
 impl LoxFunction {
-    pub fn call(&self) -> Result<LoxValue, RuntimeError> {
-        Err("not implemented".to_string())
+    pub fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LoxValue>) -> Result<LoxValue, RuntimeError> {
+        match self {
+            LoxFunction::NATIVE(c) => c.call(interpreter, arguments),
+            LoxFunction::INTERPRETER(name, params, body) => {
+                panic!("not implemented")
+            }
+        }
+    }
+
+    pub fn arity(&self) -> usize {
+        match self {
+            LoxFunction::NATIVE(c) => c.arity(),
+            LoxFunction::INTERPRETER(_, params, _) => params.len()
+        }
     }
 }
 
@@ -300,11 +312,21 @@ impl Interpreter {
     }
 
     fn evaluate_function_call(&mut self, c: &Call) -> Result<LoxValue, String> {
+        let callee = self.evaluate(&c.callee)?;
         let mut arguments = Vec::new();
         for a in &c.arguments {
             arguments.push(self.evaluate(a)?);
         }
-        Err("".to_string())
+
+        if let LoxValue::FUNCTION(function) = callee {
+            if arguments.len() != function.arity() {
+                Err(format!("Expected {} arguments but got {}.", function.arity(), arguments.len()))
+            } else {
+                function.call(self, arguments)
+            }
+        } else {
+            Err("Can only call functions and classes.".to_string())
+        }
     }
 
 }
