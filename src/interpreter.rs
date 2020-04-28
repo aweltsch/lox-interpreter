@@ -1,5 +1,7 @@
 use std::fmt;
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::ptr;
 
 use crate::expr::*;
 use crate::scanning::Token;
@@ -14,28 +16,42 @@ pub enum LoxValue {
     BOOLEAN(bool),
     NUMBER(f64),
     STRING(String),
-    FUNCTION(LoxFunction)
+    FUNCTION(Rc<LoxFunction>) // it would be cooler if we could have Rc<dyn LoxCallable> but that won't compile
 }
 
+trait LoxCallable  {
+    fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LoxValue>) -> Result<LoxValue, RuntimeError>;
+    fn arity(&self) -> usize;
+}
+
+impl PartialEq for dyn LoxCallable {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
+    }
+}
+
+impl fmt::Debug for dyn LoxCallable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // default implementation!
+        f.debug_struct("<native function>").finish()
+    }
+
+}
 
 #[derive(Debug)]
 pub enum LoxFunction {
-    NATIVE,
+    NATIVE(&'static dyn LoxCallable),
     INTERPRETER(Token, Vec<Token>, Vec<Statement>)
-}
-
-// the clone operation does not make sense for lox functions...
-// I need to rethink the structure of LoxValue!!!
-impl Clone for LoxFunction {
-    fn clone(&self) -> Self {
-        LoxFunction::NATIVE // FIXME!!!
-    }
 }
 
 impl PartialEq for LoxFunction {
     fn eq(&self, other: &Self) -> bool {
         match self {
-            LoxFunction::NATIVE => other == &LoxFunction::NATIVE,
+            LoxFunction::NATIVE(c_self) => if let LoxFunction::NATIVE(c_other) = other {
+                c_self == c_other
+            } else {
+                false
+            }
             LoxFunction::INTERPRETER(t_self, _, _) => if let LoxFunction::INTERPRETER(t_other, _, _) = other {
                 t_self == t_other
             } else {
