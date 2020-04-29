@@ -12,6 +12,7 @@ mod scanning;
 mod expr;
 mod parser;
 mod interpreter;
+mod native_functions;
 
 pub fn run_file(path: &Path) {
     let file_content = match fs::read_to_string(path) {

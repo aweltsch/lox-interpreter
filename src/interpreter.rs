@@ -8,6 +8,7 @@ use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::parser::Statement;
 use crate::parser::ParseError;
+use crate::native_functions::ClockFunction;
 
 // FIXME this is replicated the 3rd time!
 #[derive(Debug, PartialEq, Clone)]
@@ -19,7 +20,7 @@ pub enum LoxValue {
     FUNCTION(Rc<LoxFunction>) // it would be cooler if we could have Rc<dyn LoxCallable> but that won't compile
 }
 
-trait LoxCallable  {
+pub trait LoxCallable  {
     fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LoxValue>) -> Result<LoxValue, RuntimeError>;
     fn arity(&self) -> usize;
 }
@@ -170,7 +171,9 @@ impl Environment {
 
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter { environment: Environment::new() }
+        let mut env = Environment::new();
+        env.define("clock", LoxValue::FUNCTION(Rc::new(LoxFunction::NATIVE(&ClockFunction {}))));
+        Interpreter { environment: env }
     }
 
     pub fn interpret(&mut self, stmts: &Vec<Statement>) {
@@ -219,7 +222,8 @@ impl Interpreter {
                     self.evaluate_statement(&body)?;
                 }
                 Ok(LoxValue::NIL)
-            }
+            },
+            Statement::FUNCTION(_) => panic!("not implemented")
         }
     }
     pub fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue, String> {

@@ -40,7 +40,7 @@ impl Parser {
 #[derive(Debug)]
 pub enum Statement {
     BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
-    IF(IfStatement), WHILE(Expr, Box<Statement>)
+    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(FunctionDeclaration)
 }
 
 #[derive(Debug)]
@@ -50,8 +50,18 @@ pub struct IfStatement {
     pub else_branch: Option<Box<Statement>>
 }
 
+#[derive(Debug)]
+pub struct FunctionDeclaration {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Statement>
+}
+
 fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let result = if next_token_matches(tokens, &[TokenType::VAR]) {
+    let result = if next_token_matches(tokens, &[TokenType::FUN]) {
+        tokens.pop_front();
+        fun_decl(tokens)
+    } else if next_token_matches(tokens, &[TokenType::VAR]) {
         tokens.pop_front();
         var_decl(tokens)
     } else {
@@ -61,6 +71,9 @@ fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
         synchronize(tokens);
     }
     return result;
+}
+fn fun_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
+    panic!("not implemented")
 }
 
 fn var_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
