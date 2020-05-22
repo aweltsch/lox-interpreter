@@ -409,8 +409,9 @@ mod tests {
     }
 
     fn ast_matches(input: &str, expected: &str) {
-        let mut tokens = VecDeque::from(scan_tokens(input));
-        let expr = expression(&mut tokens).unwrap();
+        let tokens = scan_tokens(input);
+        let mut parser = Parser::new(tokens);
+        let expr = parser.expression().unwrap();
         let calculated_ast = expr.print_ast();
         assert_eq!(calculated_ast, expected);
     }
@@ -420,7 +421,8 @@ mod tests {
         let strings = &["(123 + 456", "12 +", "(123 <= 123) == (233 * 3) =="];
         for input in strings {
             let tokens = scan_tokens(&input);
-            let expr = expression(&mut VecDeque::from(tokens));
+            let mut parser = Parser::new(tokens);
+            let expr = parser.expression();
             assert!(expr.is_err(), "No error for string: {}", input);
         }
     }
@@ -430,11 +432,11 @@ mod tests {
         let original = &["asdf; 123 + 345", "fun something()", "what fun something()", "; class what()", "a statement();"];
         let expected = &["123 + 345", "fun something()", "fun something()", "class what()", ""];
         for (original, expected) in original.iter().zip(expected.iter()) {
-            let mut original_tokens = VecDeque::from(scan_tokens(&original));
+            let mut parser = Parser::new(scan_tokens(&original));
             let expected_tokens = VecDeque::from(scan_tokens(&expected));
 
-            let _synchronized_tokens = synchronize(&mut original_tokens);
-            assert_eq!(original_tokens, expected_tokens, "Tokens don't match for: {}", original);
+            parser.synchronize();
+            assert_eq!(parser.tokens, expected_tokens, "Tokens don't match for: {}", original);
         }
     }
 }
