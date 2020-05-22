@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::result::Result;
 use std::option::Option;
+use std::fmt;
 
 use crate::scanning::Token;
 use crate::scanning::TokenType;
@@ -18,6 +19,39 @@ pub type ParseError = String;
 
 pub struct Parser {
     tokens: VecDeque<Token>
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
+    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(FunctionDeclaration)
+}
+
+#[derive(Debug)]
+pub struct IfStatement {
+    pub condition: Expr,
+    pub then_branch: Box<Statement>,
+    pub else_branch: Option<Box<Statement>>
+}
+
+#[derive(Debug)]
+pub struct FunctionDeclaration {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Box<Statement>>
+}
+
+pub enum FunctionKind {
+    FUNCTION
+}
+
+impl fmt::Display for FunctionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output = match self {
+            FunctionKind::FUNCTION => "function"
+        };
+        write!(f, "{}", output)
+    }
 }
 
 impl Parser {
@@ -50,8 +84,44 @@ impl Parser {
         }
         return result;
     }
+
     fn fun_decl(&mut self) -> Result<Statement, ParseError> {
-        panic!("not implemented")
+        self.function(FunctionKind::FUNCTION)
+    }
+
+    fn function(&mut self, kind: FunctionKind) -> Result<Statement, ParseError> {
+        let name = match self.tokens.pop_front() {
+            Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
+            _ => Err(format!("Expect {} name.", kind))
+        }?;
+        self.consume(TokenType::LEFT_PAREN).ok_or(format!("Expect '(' after {} name.", kind))?;
+
+        let mut parameters = Vec::new();
+        if !next_token_matches_any(&self.tokens, &[TokenType::RIGHT_PAREN]) {
+            loop {
+                if parameters.len() >= 255 {
+                    return Err("Cannot have more than 255 parameters.".to_string());
+                }
+
+                // FIXME this construct is awkward!
+                let token = match self.tokens.pop_front() {
+                    Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
+                    _ => Err(format!("Expect parameter name."))
+                }?;
+                parameters.push(token);
+
+                if !next_token_matches_any(&self.tokens, &[TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after parameters.".to_string())?;
+        let block = self.block()?;
+        if let Statement::BLOCK(body) = block {
+            Ok(Statement::FUNCTION(FunctionDeclaration {name: name, params: parameters, body: body}))
+        } else {
+            panic!("programming error, block function should return a block statement");
+        }
     }
 
     fn var_decl(&mut self) -> Result<Statement, ParseError> {
@@ -374,28 +444,6 @@ fn next_token_matches_any(tokens: &VecDeque<Token>, expected: &[TokenType]) -> b
         expected.contains(&token.token_type)
     })
 }
-
-
-#[derive(Debug)]
-pub enum Statement {
-    BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
-    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(FunctionDeclaration)
-}
-
-#[derive(Debug)]
-pub struct IfStatement {
-    pub condition: Expr,
-    pub then_branch: Box<Statement>,
-    pub else_branch: Option<Box<Statement>>
-}
-
-#[derive(Debug)]
-pub struct FunctionDeclaration {
-    pub name: Token,
-    pub params: Vec<Token>,
-    pub body: Vec<Statement>
-}
-
 
 #[cfg(test)]
 mod tests {
