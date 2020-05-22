@@ -27,15 +27,354 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
-        let mut token_deque = &mut self.tokens;
         let mut statements = Vec::new();
-        while token_deque.len() > 0 && !next_token_matches(&token_deque, &[TokenType::EOF]) {
-            let stmt = declaration(&mut token_deque)?;
+        while self.tokens.len() > 0 && !next_token_matches_any(&self.tokens, &[TokenType::EOF]) {
+            let stmt = self.declaration()?;
             statements.push(stmt);
         }
         return Ok(statements);
     }
+
+    fn declaration(&mut self) -> Result<Statement, ParseError> {
+        let result = if next_token_matches_any(&self.tokens, &[TokenType::FUN]) {
+            self.tokens.pop_front();
+            self.fun_decl()
+        } else if next_token_matches_any(&self.tokens, &[TokenType::VAR]) {
+            self.tokens.pop_front();
+            self.var_decl()
+        } else {
+            self.statement()
+        };
+        if result.is_err() {
+            self.synchronize();
+        }
+        return result;
+    }
+    fn fun_decl(&mut self) -> Result<Statement, ParseError> {
+        panic!("not implemented")
+    }
+
+    fn var_decl(&mut self) -> Result<Statement, ParseError> {
+        if let Some(token) = self.tokens.pop_front() {
+            if let TokenType::IDENTIFIER(name) = token.token_type {
+                let initializer = if next_token_matches_any(&self.tokens, &[TokenType::EQUAL]) {
+                    self.tokens.pop_front();
+                    self.expression()?
+                } else {
+                    Expr::LITERAL(Literal::NIL)
+                };
+                self.consume(TokenType::SEMICOLON).map(|_| Statement::VAR(name, initializer)).ok_or("Expect ';' after variable declaration.".to_string())
+            } else {
+                Err("Expect variable name.".to_string())
+            }
+        } else {
+            panic!("Programming error, var_decl has been called without any more tokens.");
+        }
+    }
+
+    fn statement(&mut self) -> Result<Statement, ParseError> {
+        let stmt = if next_token_matches_any(&self.tokens, &[TokenType::PRINT]) {
+            self.tokens.pop_front();
+            self.print_statement()?
+        } else if next_token_matches_any(&self.tokens, &[TokenType::LEFT_BRACE]) {
+            self.block()?
+        } else if next_token_matches_any(&self.tokens, &[TokenType::IF]) {
+            self.if_statement()?
+        } else if next_token_matches_any(&self.tokens, &[TokenType::WHILE]) {
+            self.while_statement()?
+        } else if next_token_matches_any(&self.tokens, &[TokenType::FOR]) {
+            self.for_statement()?
+        } else {
+            self.expression_statement()?
+        };
+
+        Ok(stmt)
+    }
+
+    fn block(&mut self) -> Result<Statement, ParseError> {
+        assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::LEFT_BRACE);
+        let mut stmts = Vec::new();
+        while self.tokens.len() > 0 && !next_token_matches_any(&self.tokens, &[TokenType::RIGHT_BRACE]) {
+            stmts.push(Box::new(self.declaration()?));
+        }
+
+        if next_token_matches_any(&self.tokens, &[TokenType::RIGHT_BRACE]) {
+            self.tokens.pop_front();
+            Ok(Statement::BLOCK(stmts))
+        } else {
+            Err("Expect '}' after block.".to_string())
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SEMICOLON).map(|_| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
+    }
+
+    fn if_statement(&mut self) -> Result<Statement, ParseError> {
+        assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::IF);
+        self.consume(TokenType::LEFT_PAREN).ok_or("Expect '(' after if.".to_string())?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+
+        let then_branch = Box::new(self.statement()?);
+        let else_branch = if next_token_matches_any(&self.tokens, &[TokenType::ELSE]) {
+            self.tokens.pop_front();
+            Some(Box::new(self.statement()?))
+        } else {
+            None
+        };
+
+        Ok(Statement::IF(IfStatement { condition: condition, else_branch: else_branch, then_branch: then_branch }))
+    }
+
+    fn while_statement(&mut self) -> Result<Statement, ParseError> {
+        assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::WHILE);
+        self.consume(TokenType::LEFT_PAREN).ok_or("Expect '(' after while.".to_string())?;
+        let condition = self.expression()?;
+        self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+        let body = self.statement()?;
+        Ok(Statement::WHILE(condition, Box::new(body)))
+    }
+
+    fn for_statement(&mut self) -> Result<Statement, ParseError> {
+        assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::FOR);
+        self.consume(TokenType::LEFT_PAREN).ok_or("Expect '(' after 'for'.".to_string())?;
+        let initializer = if next_token_matches_any(&self.tokens, &[TokenType::VAR]) {
+            self.tokens.pop_front(); // FIXME nasty
+            Some(self.var_decl()?)
+        } else if next_token_matches_any(&self.tokens, &[TokenType::SEMICOLON]) {
+            self.tokens.pop_front();
+            None
+        } else {
+            Some(self.expression_statement()?)
+        };
+        let condition = if next_token_matches_any(&self.tokens, &[TokenType::SEMICOLON]) {
+            self.tokens.pop_front();
+            Expr::LITERAL(Literal::BOOLEAN(true))
+        } else {
+            self.expression()?
+        };
+        self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after loop condition.".to_string());
+
+        let increment = if next_token_matches_any(&self.tokens, &[TokenType::SEMICOLON]) {
+            self.tokens.pop_front();
+            None
+        } else {
+            Some(self.expression()?)
+        };
+
+        self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
+        let for_body = self.statement()?;
+        let mut for_statements = vec![Box::new(for_body)];
+        if let Some(expr) = increment {
+            for_statements.push(Box::new(Statement::EXPRESSION(expr)));
+        }
+
+        let body = Statement::WHILE(condition, Box::new(Statement::BLOCK(for_statements)));
+        if let Some(init_stmt) = initializer {
+            let stmts = vec![Box::new(init_stmt), Box::new(body)];
+            Ok(Statement::BLOCK(stmts))
+        } else {
+            Ok(body)
+        }
+    }
+
+    fn expression_statement(&mut self) -> Result<Statement, ParseError> {
+        let expr = self.expression()?;
+        self.consume(TokenType::SEMICOLON).map(|_| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
+    }
+
+    fn consume(&mut self, token_type: TokenType) -> Option<Token> {
+        if next_token_matches_any(&self.tokens, &[token_type]) {
+            self.tokens.pop_front()
+        } else {
+            None
+        }
+    }
+
+    fn expression(&mut self) -> Result<Expr, ParseError> {
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.logic_or();
+        if next_token_matches_any(&self.tokens, &[TokenType::EQUAL]) {
+            self.tokens.pop_front(); // consume "="
+            let value = self.assignment();
+            if let Ok(Expr::VARIABLE(v)) = &expr {
+                return Ok(Expr::ASSIGNMENT(Assignment { name: v.name.clone(), value: Box::new(value?) }));
+            } else {
+                return Err("Invalid assignment target.".to_string());
+            }
+        }
+        return expr;
+    }
+
+    fn logic_or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.logic_and()?;
+        while next_token_matches_any(&self.tokens, &[TokenType::OR]) {
+            let operator = self.tokens.pop_front().unwrap();
+            let right = self.logic_and()?;
+            expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
+
+        }
+
+        return Ok(expr);
+    }
+
+    fn logic_and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while next_token_matches_any(&self.tokens, &[TokenType::AND]) {
+            let operator = self.tokens.pop_front().unwrap();
+            let right = self.equality()?;
+            expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
+
+        }
+
+        return Ok(expr);
+    }
+
+    fn equality(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.comparison()?;
+
+        while next_token_matches_any(&self.tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
+            if let Some(operator) = self.tokens.pop_front() {
+                let right = self.comparison()?;
+                expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.addition()?;
+        while next_token_matches_any(&self.tokens, &[TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL]) {
+            if let Some(operator) = self.tokens.pop_front() {
+                let right = self.addition()?;
+                expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+            }
+        }
+        Ok(expr)
+    }
+
+    fn addition(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.multiplication()?;
+
+        while next_token_matches_any(&self.tokens, &[TokenType::PLUS, TokenType::MINUS]) {
+            if let Some(operator) = self.tokens.pop_front() {
+                let right = self.multiplication()?;
+                expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+            }
+        }
+        Ok(expr)
+    }
+
+    fn multiplication(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.unary()?;
+
+        while next_token_matches_any(&self.tokens, &[TokenType::STAR, TokenType::SLASH]) {
+            if let Some(operator) = self.tokens.pop_front() {
+                let right = self.unary()?;
+                expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
+            }
+        }
+        Ok(expr)
+    }
+
+    fn unary(&mut self) -> Result<Expr, ParseError> {
+        if next_token_matches_any(&self.tokens, &[TokenType::BANG, TokenType::MINUS]) {
+            if let Some(operator) = self.tokens.pop_front() {
+                let right = self.unary()?;
+                return Ok(Expr::UNARY(Unary {operator: operator, right: Box::new(right)}))
+            }
+        }
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.primary()?;
+        while true {
+            if next_token_matches_any(&self.tokens, &[TokenType::LEFT_PAREN]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, expr: Expr) -> Result<Expr, ParseError> {
+        assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::LEFT_PAREN);
+        let mut arguments = Vec::new();
+        if (!next_token_matches_any(&self.tokens, &[TokenType::RIGHT_PAREN])) {
+            while true {
+                // NOTE: we do not introduce a maximum arguments size here!
+                arguments.push(self.expression()?);
+                if !next_token_matches_any(&self.tokens, &[TokenType::COMMA]) {
+                    break;
+                }
+                assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::COMMA);
+            }
+        }
+
+        let paren = self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after expression.".to_string())?;
+
+        Ok(Expr::CALL(Call {callee: Box::new(expr), paren: paren, arguments: arguments}))
+    }
+
+    fn primary(&mut self) -> Result<Expr, ParseError> {
+        if let Some(token) = self.tokens.pop_front() {
+            if let Some(result) = token.token_type.to_literal() {
+                return Ok(Expr::LITERAL(result));
+            } else if let TokenType::IDENTIFIER(name) = token.token_type {
+                return Ok(Expr::VARIABLE(Variable { name: name }));
+            } else if let TokenType::LEFT_PAREN = token.token_type {
+                let expr = self.expression()?;
+
+                if let Some(other_token) = self.tokens.pop_front() {
+                    if other_token.token_type != TokenType::RIGHT_PAREN {
+                        return Err("Expect ')' after expression.".to_string());
+                    }
+                }
+                return Ok(
+                    Expr::GROUPING(Grouping {expression: Box::new(expr)})
+                    );
+            }
+        }
+        Err("Could not match Token".to_string())
+    }
+
+    fn synchronize(&mut self) {
+        while self.tokens.len() > 0 {
+            if next_token_matches_any(&self.tokens,
+                                      &[TokenType::CLASS,
+                                      TokenType::FUN,
+                                      TokenType::VAR,
+                                      TokenType::FOR,
+                                      TokenType::IF,
+                                      TokenType::WHILE,
+                                      TokenType::PRINT,
+                                      TokenType::RETURN]) {
+                return;
+            }
+
+            let token = self.tokens.pop_front();
+            if token.map_or(false, |t| t.token_type == TokenType::SEMICOLON) {
+                return;
+            }
+        }
+    }
 }
+
+// FIXME this will not work for TokenType with values i.e. TokenType::NUMBER
+fn next_token_matches_any(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool {
+    tokens.get(0).map_or(false, |token| {
+        expected.contains(&token.token_type)
+    })
+}
+
 
 #[derive(Debug)]
 pub enum Statement {
@@ -57,344 +396,6 @@ pub struct FunctionDeclaration {
     pub body: Vec<Statement>
 }
 
-fn declaration(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let result = if next_token_matches(tokens, &[TokenType::FUN]) {
-        tokens.pop_front();
-        fun_decl(tokens)
-    } else if next_token_matches(tokens, &[TokenType::VAR]) {
-        tokens.pop_front();
-        var_decl(tokens)
-    } else {
-        statement(tokens)
-    };
-    if result.is_err() {
-        synchronize(tokens);
-    }
-    return result;
-}
-fn fun_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    panic!("not implemented")
-}
-
-fn var_decl(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    if let Some(token) = tokens.pop_front() {
-        if let TokenType::IDENTIFIER(name) = token.token_type {
-            let initializer = if next_token_matches(tokens, &[TokenType::EQUAL]) {
-                tokens.pop_front();
-                expression(tokens)?
-            } else {
-                Expr::LITERAL(Literal::NIL)
-            };
-            consume(tokens, TokenType::SEMICOLON).map(|_| Statement::VAR(name, initializer)).ok_or("Expect ';' after variable declaration.".to_string())
-        } else {
-            Err("Expect variable name.".to_string())
-        }
-    } else {
-        panic!("Programming error, var_decl has been called without any more tokens.");
-    }
-}
-
-fn statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let stmt = if next_token_matches(tokens, &[TokenType::PRINT]) {
-        tokens.pop_front();
-        print_statement(tokens)?
-    } else if next_token_matches(tokens, &[TokenType::LEFT_BRACE]) {
-        block(tokens)?
-    } else if next_token_matches(tokens, &[TokenType::IF]) {
-        if_statement(tokens)?
-    } else if next_token_matches(tokens, &[TokenType::WHILE]) {
-        while_statement(tokens)?
-    } else if next_token_matches(tokens, &[TokenType::FOR]) {
-        for_statement(tokens)?
-    } else {
-        expression_statement(tokens)?
-    };
-
-    Ok(stmt)
-}
-
-fn block(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::LEFT_BRACE);
-    let mut stmts = Vec::new();
-    while tokens.len() > 0 && !next_token_matches(tokens, &[TokenType::RIGHT_BRACE]) {
-        stmts.push(Box::new(declaration(tokens)?));
-    }
-
-    if next_token_matches(tokens, &[TokenType::RIGHT_BRACE]) {
-        tokens.pop_front();
-        Ok(Statement::BLOCK(stmts))
-    } else {
-        Err("Expect '}' after block.".to_string())
-    }
-}
-
-fn print_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let expr = expression(tokens)?;
-    consume(tokens, TokenType::SEMICOLON).map(|_| Statement::PRINT(expr)).ok_or("Expect ';' after expression.".to_string())
-}
-
-fn if_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::IF);
-    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after if.".to_string())?;
-    let condition = expression(tokens)?;
-    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
-
-    let then_branch = Box::new(statement(tokens)?);
-    let else_branch = if next_token_matches(tokens, &[TokenType::ELSE]) {
-        tokens.pop_front();
-        Some(Box::new(statement(tokens)?))
-    } else {
-        None
-    };
-
-    Ok(Statement::IF(IfStatement { condition: condition, else_branch: else_branch, then_branch: then_branch }))
-}
-
-fn while_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::WHILE);
-    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after while.".to_string())?;
-    let condition = expression(tokens)?;
-    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
-    let body = statement(tokens)?;
-    Ok(Statement::WHILE(condition, Box::new(body)))
-}
-
-fn for_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::FOR);
-    consume(tokens, TokenType::LEFT_PAREN).ok_or("Expect '(' after 'for'.".to_string())?;
-    let initializer = if next_token_matches(tokens, &[TokenType::VAR]) {
-        tokens.pop_front(); // FIXME nasty
-        Some(var_decl(tokens)?)
-    } else if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
-        tokens.pop_front();
-        None
-    } else {
-        Some(expression_statement(tokens)?)
-    };
-    let condition = if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
-        tokens.pop_front();
-        Expr::LITERAL(Literal::BOOLEAN(true))
-    } else {
-        expression(tokens)?
-    };
-    consume(tokens, TokenType::SEMICOLON).ok_or("Expect ';' after loop condition.".to_string());
-
-    let increment = if next_token_matches(tokens, &[TokenType::SEMICOLON]) {
-        tokens.pop_front();
-        None
-    } else {
-        Some(expression(tokens)?)
-    };
-
-    consume(tokens, TokenType::RIGHT_PAREN).ok_or("Expect ')' after if condition.".to_string())?;
-    let for_body = statement(tokens)?;
-    let mut for_statements = vec![Box::new(for_body)];
-    if let Some(expr) = increment {
-        for_statements.push(Box::new(Statement::EXPRESSION(expr)));
-    }
-
-    let body = Statement::WHILE(condition, Box::new(Statement::BLOCK(for_statements)));
-    if let Some(init_stmt) = initializer {
-        let stmts = vec![Box::new(init_stmt), Box::new(body)];
-        Ok(Statement::BLOCK(stmts))
-    } else {
-        Ok(body)
-    }
-}
-
-fn expression_statement(tokens: &mut VecDeque<Token>) -> Result<Statement, ParseError> {
-    let expr = expression(tokens)?;
-    consume(tokens, TokenType::SEMICOLON).map(|_| Statement::EXPRESSION(expr)).ok_or("Expect ';' after expression.".to_string())
-}
-
-fn consume(tokens: &mut VecDeque<Token>, token_type: TokenType) -> Option<Token> {
-    if next_token_matches(tokens, &[token_type]) {
-        tokens.pop_front()
-    } else {
-        None
-    }
-}
-
-fn expression(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    assignment(tokens)
-}
-
-fn assignment(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let expr = logic_or(tokens);
-    if next_token_matches(tokens, &[TokenType::EQUAL]) {
-        tokens.pop_front(); // consume "="
-        let value = assignment(tokens);
-        if let Ok(Expr::VARIABLE(v)) = &expr {
-            return Ok(Expr::ASSIGNMENT(Assignment { name: v.name.clone(), value: Box::new(value?) }));
-        } else {
-            return Err("Invalid assignment target.".to_string());
-        }
-    }
-    return expr;
-}
-
-fn logic_or(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = logic_and(tokens)?;
-    while next_token_matches(tokens, &[TokenType::OR]) {
-        let operator = tokens.pop_front().unwrap();
-        let right = logic_and(tokens)?;
-        expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
-
-    }
-
-    return Ok(expr);
-}
-
-fn logic_and(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = equality(tokens)?;
-    while next_token_matches(tokens, &[TokenType::AND]) {
-        let operator = tokens.pop_front().unwrap();
-        let right = equality(tokens)?;
-        expr = Expr::LOGICAL(Logical { left: Box::new(expr), operator: operator, right: Box::new(right) });
-
-    }
-
-    return Ok(expr);
-}
-
-fn equality(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = comparison(tokens)?;
-
-    while next_token_matches(tokens, &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
-        if let Some(operator) = tokens.pop_front() {
-            let right = comparison(tokens)?;
-            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
-        }
-    }
-
-    Ok(expr)
-}
-
-fn comparison(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = addition(tokens)?;
-    while next_token_matches(tokens, &[TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL]) {
-        if let Some(operator) = tokens.pop_front() {
-            let right = addition(tokens)?;
-            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
-        }
-    }
-    Ok(expr)
-}
-
-fn addition(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = multiplication(tokens)?;
-
-    while next_token_matches(tokens, &[TokenType::PLUS, TokenType::MINUS]) {
-        if let Some(operator) = tokens.pop_front() {
-            let right = multiplication(tokens)?;
-            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
-        }
-    }
-    Ok(expr)
-}
-
-fn multiplication(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = unary(tokens)?;
-
-    while next_token_matches(tokens, &[TokenType::STAR, TokenType::SLASH]) {
-        if let Some(operator) = tokens.pop_front() {
-            let right = unary(tokens)?;
-            expr = Expr::BINARY(Binary {left: Box::new(expr), operator: operator, right: Box::new(right)});
-        }
-    }
-    Ok(expr)
-}
-
-fn unary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    if next_token_matches(tokens, &[TokenType::BANG, TokenType::MINUS]) {
-        if let Some(operator) = tokens.pop_front() {
-            let right = unary(tokens)?;
-            return Ok(Expr::UNARY(Unary {operator: operator, right: Box::new(right)}))
-        }
-    }
-    call(tokens)
-}
-
-fn call(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    let mut expr = primary(tokens)?;
-    while true {
-        if next_token_matches(tokens, &[TokenType::LEFT_PAREN]) {
-            expr = finish_call(tokens, expr)?;
-        } else {
-            break;
-        }
-    }
-    Ok(expr)
-}
-
-fn finish_call(tokens: &mut VecDeque<Token>, expr: Expr) -> Result<Expr, ParseError> {
-    assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::LEFT_PAREN);
-    let mut arguments = Vec::new();
-    if (!next_token_matches(tokens, &[TokenType::RIGHT_PAREN])) {
-        while true {
-            // NOTE: we do not introduce a maximum arguments size here!
-            arguments.push(expression(tokens)?);
-            if !next_token_matches(tokens, &[TokenType::COMMA]) {
-                break;
-            }
-            assert_eq!(tokens.pop_front().unwrap().token_type, TokenType::COMMA);
-        }
-    }
-
-    let paren = consume(tokens, TokenType::SEMICOLON).ok_or("Expect ';' after expression.".to_string())?;
-
-    Ok(Expr::CALL(Call {callee: Box::new(expr), paren: paren, arguments: arguments}))
-}
-
-fn primary(tokens: &mut VecDeque<Token>) -> Result<Expr, ParseError> {
-    if let Some(token) = tokens.pop_front() {
-        if let Some(result) = token.token_type.to_literal() {
-            return Ok(Expr::LITERAL(result));
-        } else if let TokenType::IDENTIFIER(name) = token.token_type {
-            return Ok(Expr::VARIABLE(Variable { name: name }));
-        } else if let TokenType::LEFT_PAREN = token.token_type {
-            let expr = expression(tokens)?;
-
-            if let Some(other_token) = tokens.pop_front() {
-                if other_token.token_type != TokenType::RIGHT_PAREN {
-                    return Err("Expect ')' after expression.".to_string());
-                }
-            }
-            return Ok(
-                Expr::GROUPING(Grouping {expression: Box::new(expr)})
-                );
-        }
-    }
-    Err("Could not match Token".to_string())
-}
-
-// FIXME this will not work for TokenType with values i.e. TokenType::NUMBER
-fn next_token_matches(tokens: &VecDeque<Token>, expected: &[TokenType]) -> bool {
-    tokens.get(0).map_or(false, |token| {
-        expected.contains(&token.token_type)
-    })
-}
-
-fn synchronize(tokens: &mut VecDeque<Token>) {
-    while tokens.len() > 0 {
-        if next_token_matches(tokens,
-                              &[TokenType::CLASS,
-                              TokenType::FUN,
-                              TokenType::VAR,
-                              TokenType::FOR,
-                              TokenType::IF,
-                              TokenType::WHILE,
-                              TokenType::PRINT,
-                              TokenType::RETURN]) {
-            return;
-        }
-
-        let token = tokens.pop_front();
-        if token.map_or(false, |t| t.token_type == TokenType::SEMICOLON) {
-            return;
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
