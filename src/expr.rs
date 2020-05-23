@@ -3,8 +3,6 @@ use std::option::Option;
 use crate::scanning::TokenType;
 use crate::scanning::Token;
 
-// FIXME is this an anti-pattern?
-// I do not want unnamed parameters for the enum parameters...
 #[derive(Debug)]
 pub enum Expr {
     BINARY(Binary),

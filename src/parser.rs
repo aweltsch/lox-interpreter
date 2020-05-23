@@ -365,7 +365,7 @@ impl Parser {
 
     fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary()?;
-        while true {
+        loop {
             if next_token_matches_any(&self.tokens, &[TokenType::LEFT_PAREN]) {
                 expr = self.finish_call(expr)?;
             } else {
@@ -378,8 +378,8 @@ impl Parser {
     fn finish_call(&mut self, expr: Expr) -> Result<Expr, ParseError> {
         assert_eq!(self.tokens.pop_front().unwrap().token_type, TokenType::LEFT_PAREN);
         let mut arguments = Vec::new();
-        if (!next_token_matches_any(&self.tokens, &[TokenType::RIGHT_PAREN])) {
-            while true {
+        if !next_token_matches_any(&self.tokens, &[TokenType::RIGHT_PAREN]) {
+            loop {
                 // NOTE: we do not introduce a maximum arguments size here!
                 arguments.push(self.expression()?);
                 if !next_token_matches_any(&self.tokens, &[TokenType::COMMA]) {
