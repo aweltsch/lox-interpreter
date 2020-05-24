@@ -248,6 +248,9 @@ impl Interpreter {
                 self.environment.define(name, function);
                 Ok(LoxValue::NIL)
             }
+            Statement::RETURN(_) => {
+                panic!("not implemented!")
+            }
         }
     }
 

@@ -25,7 +25,8 @@ pub struct Parser {
 #[derive(Debug)]
 pub enum Statement {
     BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
-    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(Rc<FunctionDeclaration>)
+    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(Rc<FunctionDeclaration>),
+    RETURN(ReturnStatement)
 }
 
 #[derive(Debug)]
@@ -40,6 +41,12 @@ pub struct FunctionDeclaration {
     pub name: Token,
     pub params: Vec<Token>,
     pub body: Vec<Box<Statement>>
+}
+
+#[derive(Debug)]
+pub struct ReturnStatement {
+    pub keyword: Token,
+    pub value: Expr
 }
 
 pub enum FunctionKind {
@@ -146,22 +153,19 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Statement, ParseError> {
-        let stmt = if next_token_matches_any(&self.tokens, &[TokenType::PRINT]) {
-            self.tokens.pop_front();
-            self.print_statement()?
-        } else if next_token_matches_any(&self.tokens, &[TokenType::LEFT_BRACE]) {
-            self.block()?
-        } else if next_token_matches_any(&self.tokens, &[TokenType::IF]) {
-            self.if_statement()?
-        } else if next_token_matches_any(&self.tokens, &[TokenType::WHILE]) {
-            self.while_statement()?
-        } else if next_token_matches_any(&self.tokens, &[TokenType::FOR]) {
-            self.for_statement()?
-        } else {
-            self.expression_statement()?
-        };
-
-        Ok(stmt)
+        assert!(self.tokens.len() > 0, "Programming error, statement() should not be called if no tokens are left!");
+        let token = self.tokens.get(0).unwrap();
+        match token.token_type {
+            TokenType::PRINT => {
+                self.tokens.pop_front();
+                self.print_statement()
+            },
+            TokenType::LEFT_BRACE => self.block(),
+            TokenType::IF => self.if_statement(),
+            TokenType::WHILE => self.while_statement(),
+            TokenType::FOR => self.for_statement(),
+            _ => self.expression_statement()
+        }
     }
 
     fn block(&mut self) -> Result<Statement, ParseError> {
