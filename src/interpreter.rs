@@ -238,9 +238,15 @@ impl Interpreter {
                 }
                 Ok(LoxValue::NIL)
             },
-            Statement::FUNCTION(_) => panic!("not implemented")
+            Statement::FUNCTION(declaration) => {
+                let name = &declaration.name.lexeme;
+                let function = LoxValue::FUNCTION(Rc::new(LoxFunction::INTERPRETER(declaration)));
+                self.environment.define(name, function);
+                Ok(LoxValue::NIL)
+            }
         }
     }
+
     pub fn evaluate(&mut self, expr: &Expr) -> Result<LoxValue, String> {
         match expr {
             Expr::BINARY(b) => self.evaluate_binary(b),
