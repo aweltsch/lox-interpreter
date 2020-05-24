@@ -8,6 +8,7 @@ use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::parser::Statement;
 use crate::parser::ParseError;
+use crate::parser::FunctionDeclaration;
 use crate::native_functions::ClockFunction;
 
 // FIXME this is replicated the 3rd time!
@@ -42,7 +43,7 @@ impl fmt::Debug for dyn LoxCallable {
 #[derive(Debug)]
 pub enum LoxFunction {
     NATIVE(&'static dyn LoxCallable),
-    INTERPRETER(Token, Vec<Token>, Vec<Statement>)
+    INTERPRETER(FunctionDeclaration)
 }
 
 impl PartialEq for LoxFunction {
@@ -53,8 +54,8 @@ impl PartialEq for LoxFunction {
             } else {
                 false
             }
-            LoxFunction::INTERPRETER(t_self, _, _) => if let LoxFunction::INTERPRETER(t_other, _, _) = other {
-                t_self == t_other
+            LoxFunction::INTERPRETER(self_d) => if let LoxFunction::INTERPRETER(other_d) = other {
+                self_d.name == other_d.name
             } else {
                 false
             }
@@ -70,8 +71,16 @@ impl LoxFunction {
     pub fn call(&self, interpreter: &mut Interpreter, arguments: Vec<LoxValue>) -> Result<LoxValue, RuntimeError> {
         match self {
             LoxFunction::NATIVE(c) => c.call(interpreter, arguments),
-            LoxFunction::INTERPRETER(name, params, body) => {
-                panic!("not implemented")
+            LoxFunction::INTERPRETER(d) => {
+                assert!(arguments.len() == d.params.len());
+                interpreter.environment.add_scope();
+                for (name, value) in d.params.iter().zip(arguments.into_iter()) {
+                    interpreter.environment.define(&name.lexeme, value);
+                }
+                let result = interpreter.execute_block(&d.body);
+                interpreter.environment.pop_scope();
+                // FIXME result!
+                Ok(LoxValue::NIL)
             }
         }
     }
@@ -79,8 +88,14 @@ impl LoxFunction {
     pub fn arity(&self) -> usize {
         match self {
             LoxFunction::NATIVE(c) => c.arity(),
-            LoxFunction::INTERPRETER(_, params, _) => params.len()
+            LoxFunction::INTERPRETER(d) => d.params.len()
         }
+    }
+}
+
+impl LoxFunction {
+    pub fn new(declaration: FunctionDeclaration) -> Self {
+        LoxFunction::INTERPRETER(declaration)
     }
 }
 
