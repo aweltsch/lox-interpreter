@@ -164,6 +164,7 @@ impl Parser {
             TokenType::IF => self.if_statement(),
             TokenType::WHILE => self.while_statement(),
             TokenType::FOR => self.for_statement(),
+            TokenType::RETURN => self.return_statement(),
             _ => self.expression_statement()
         }
     }
@@ -255,6 +256,18 @@ impl Parser {
         } else {
             Ok(body)
         }
+    }
+
+    fn return_statement(&mut self) -> Result<Statement, ParseError> {
+        let keyword = self.tokens.pop_front().unwrap();
+        assert!(keyword.token_type == TokenType::RETURN);
+        let value = if !next_token_matches_any(&self.tokens, &[TokenType::SEMICOLON]) {
+            self.expression()?
+        } else {
+            Expr::LITERAL(Literal::NIL)
+        };
+        self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after return valuue.".to_string())?;
+        Ok(Statement::RETURN(ReturnStatement {keyword, value}))
     }
 
     fn expression_statement(&mut self) -> Result<Statement, ParseError> {
