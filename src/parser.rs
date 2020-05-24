@@ -92,7 +92,7 @@ impl Parser {
 
     fn function(&mut self, kind: FunctionKind) -> Result<Statement, ParseError> {
         let name = match self.tokens.pop_front() {
-            Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
+            Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme, line}) => Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme, line}),
             _ => Err(format!("Expect {} name.", kind))
         }?;
         self.consume(TokenType::LEFT_PAREN).ok_or(format!("Expect '(' after {} name.", kind))?;
@@ -106,8 +106,8 @@ impl Parser {
 
                 // FIXME this construct is awkward!
                 let token = match self.tokens.pop_front() {
-                    Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => 
-                        Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
+                    Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme, line}) => 
+                        Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme, line}),
                     _ => Err(format!("Expect parameter name."))
                 }?;
                 parameters.push(token);
@@ -228,7 +228,7 @@ impl Parser {
         } else {
             self.expression()?
         };
-        self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after loop condition.".to_string());
+        self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after loop condition.".to_string())?;
 
         let increment = if next_token_matches_any(&self.tokens, &[TokenType::SEMICOLON]) {
             self.tokens.pop_front();

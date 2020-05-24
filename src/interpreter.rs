@@ -4,7 +4,6 @@ use std::rc::Rc;
 use std::ptr;
 
 use crate::expr::*;
-use crate::scanning::Token;
 use crate::scanning::TokenType;
 use crate::parser::Statement;
 use crate::parser::ParseError;
@@ -93,6 +92,16 @@ impl LoxFunction {
     }
 }
 
+impl fmt::Display for LoxFunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output = match self {
+            LoxFunction::NATIVE(_) => "<native fn>".to_string(),
+            LoxFunction::INTERPRETER(d) => format!("<fn {}>", &d.name.lexeme)
+        };
+        write!(f, "{}", output)
+    }
+}
+
 impl LoxValue {
     fn to_boolean(&self) -> LoxValue {
         match self {
@@ -117,7 +126,7 @@ impl fmt::Display for LoxValue {
             LoxValue::BOOLEAN(b) => b.to_string(),
             LoxValue::NUMBER(n) => n.to_string(),
             LoxValue::STRING(s) => format!("{}", s),
-            LoxValue::FUNCTION(f) => panic!("not implemented")
+            LoxValue::FUNCTION(f) => format!("{}", f)
         };
         write!(f, "{}", output)
     }
@@ -258,6 +267,7 @@ impl Interpreter {
     fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) {
         self.environment.add_scope();
         for stmt in stmts {
+            // FIXME
             self.evaluate_statement(stmt);
         }
         self.environment.pop_scope();
