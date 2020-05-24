@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::result::Result;
 use std::option::Option;
 use std::fmt;
+use std::rc::Rc;
 
 use crate::scanning::Token;
 use crate::scanning::TokenType;
@@ -24,7 +25,7 @@ pub struct Parser {
 #[derive(Debug)]
 pub enum Statement {
     BLOCK(Vec<Box<Statement>>), PRINT(Expr), EXPRESSION(Expr), VAR(String, Expr),
-    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(FunctionDeclaration)
+    IF(IfStatement), WHILE(Expr, Box<Statement>), FUNCTION(Rc<FunctionDeclaration>)
 }
 
 #[derive(Debug)]
@@ -118,7 +119,7 @@ impl Parser {
         self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after parameters.".to_string())?;
         let block = self.block()?;
         if let Statement::BLOCK(body) = block {
-            Ok(Statement::FUNCTION(FunctionDeclaration {name: name, params: parameters, body: body}))
+            Ok(Statement::FUNCTION(Rc::new(FunctionDeclaration {name: name, params: parameters, body: body})))
         } else {
             panic!("programming error, block function should return a block statement");
         }

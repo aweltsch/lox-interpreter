@@ -43,7 +43,7 @@ impl fmt::Debug for dyn LoxCallable {
 #[derive(Debug)]
 pub enum LoxFunction {
     NATIVE(&'static dyn LoxCallable),
-    INTERPRETER(FunctionDeclaration)
+    INTERPRETER(Rc<FunctionDeclaration>)
 }
 
 impl PartialEq for LoxFunction {
@@ -90,12 +90,6 @@ impl LoxFunction {
             LoxFunction::NATIVE(c) => c.arity(),
             LoxFunction::INTERPRETER(d) => d.params.len()
         }
-    }
-}
-
-impl LoxFunction {
-    pub fn new(declaration: FunctionDeclaration) -> Self {
-        LoxFunction::INTERPRETER(declaration)
     }
 }
 
@@ -240,7 +234,7 @@ impl Interpreter {
             },
             Statement::FUNCTION(declaration) => {
                 let name = &declaration.name.lexeme;
-                let function = LoxValue::FUNCTION(Rc::new(LoxFunction::INTERPRETER(declaration)));
+                let function = LoxValue::FUNCTION(Rc::new(LoxFunction::INTERPRETER(declaration.clone())));
                 self.environment.define(name, function);
                 Ok(LoxValue::NIL)
             }
