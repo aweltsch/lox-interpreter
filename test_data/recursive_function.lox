@@ -1,3 +1,22 @@
+fun add(a, b, c) {
+  print a + b + c;
+}
+
+add(1, 2, 3);
+
+fun count(n) {
+  if (n > 1) count(n - 1);
+  print n;
+}
+
+count(3);
+
+fun add(a, b) {
+  print a + b;
+}
+
+print add; // "<fn add>".
+
 fun isOdd(n) {
   if (n == 0) return false;
   return isEven(n - 1);
