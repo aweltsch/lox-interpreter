@@ -234,6 +234,7 @@ impl Interpreter {
             },
             Statement::FUNCTION(declaration) => {
                 let name = &declaration.name.lexeme;
+                // FIXME this looks terrible!
                 let function = LoxValue::FUNCTION(Rc::new(LoxFunction::INTERPRETER(declaration.clone())));
                 self.environment.define(name, function);
                 Ok(LoxValue::NIL)

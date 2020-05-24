@@ -41,9 +41,10 @@ fn run(s: &str) -> Result<LoxValue,String> {
     let tokens = scan_tokens(s);
     let mut parser = Parser::new(tokens);
     let mut interpreter = Interpreter::new();
-    if let Ok(stmts) = parser.parse() {
-        interpreter.interpret(&stmts);
-    }
+    match parser.parse() {
+        Ok(stmts) => interpreter.interpret(&stmts),
+        Err(s) => println!("{}", s)
+    };
     Err("sad panda".to_string())
 }
 

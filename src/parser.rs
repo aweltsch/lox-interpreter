@@ -106,7 +106,8 @@ impl Parser {
 
                 // FIXME this construct is awkward!
                 let token = match self.tokens.pop_front() {
-                    Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
+                    Some(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}) => 
+                        Ok(Token {token_type: TokenType::IDENTIFIER(name), lexeme: lexeme, line: line}),
                     _ => Err(format!("Expect parameter name."))
                 }?;
                 parameters.push(token);
@@ -114,6 +115,7 @@ impl Parser {
                 if !next_token_matches_any(&self.tokens, &[TokenType::COMMA]) {
                     break;
                 }
+                self.tokens.pop_front();
             }
         }
         self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after parameters.".to_string())?;
@@ -390,7 +392,7 @@ impl Parser {
             }
         }
 
-        let paren = self.consume(TokenType::SEMICOLON).ok_or("Expect ';' after expression.".to_string())?;
+        let paren = self.consume(TokenType::RIGHT_PAREN).ok_or("Expect ')' after expression.".to_string())?;
 
         Ok(Expr::CALL(Call {callee: Box::new(expr), paren: paren, arguments: arguments}))
     }
