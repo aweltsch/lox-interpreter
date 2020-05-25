@@ -17,7 +17,8 @@ pub enum LoxValue {
     BOOLEAN(bool),
     NUMBER(f64),
     STRING(String),
-    FUNCTION(Rc<LoxFunction>) // it would be cooler if we could have Rc<dyn LoxCallable> but that won't compile
+    FUNCTION(Rc<LoxFunction>), // it would be cooler if we could have Rc<dyn LoxCallable> but that won't compile
+    RETURN(Box<LoxValue>)
 }
 
 pub trait LoxCallable  {
@@ -76,10 +77,15 @@ impl LoxFunction {
                 for (name, value) in d.params.iter().zip(arguments.into_iter()) {
                     interpreter.environment.define(&name.lexeme, value);
                 }
-                let result = interpreter.execute_block(&d.body);
+                let result = interpreter.execute_block(&d.body)?;
                 interpreter.environment.pop_scope();
-                // FIXME result!
-                Ok(LoxValue::NIL)
+                if let LoxValue::RETURN(v) = result {
+                    Ok(*v)
+                } else if let LoxValue::NIL = result {
+                    Ok(LoxValue::NIL)
+                } else {
+                    panic!("Execute block should always return a 'RETURN' value or 'NIL'!");
+                }
             }
         }
     }
@@ -126,7 +132,8 @@ impl fmt::Display for LoxValue {
             LoxValue::BOOLEAN(b) => b.to_string(),
             LoxValue::NUMBER(n) => n.to_string(),
             LoxValue::STRING(s) => format!("{}", s),
-            LoxValue::FUNCTION(f) => format!("{}", f)
+            LoxValue::FUNCTION(f) => format!("{}", f),
+            LoxValue::RETURN(v) => format!("return {}", v)
         };
         write!(f, "{}", output)
     }
@@ -218,10 +225,7 @@ impl Interpreter {
                 self.environment.define(name, value);
                 Ok(LoxValue::NIL)
             },
-            Statement::BLOCK(stmts) => {
-                self.execute_block(stmts);
-                Ok(LoxValue::NIL)
-            },
+            Statement::BLOCK(stmts) => self.execute_block(stmts),
             Statement::IF(if_stmt) => {
                 let condition_outcome = self.evaluate(&if_stmt.condition)?;
 
@@ -248,9 +252,7 @@ impl Interpreter {
                 self.environment.define(name, function);
                 Ok(LoxValue::NIL)
             }
-            Statement::RETURN(_) => {
-                panic!("not implemented!")
-            }
+            Statement::RETURN(return_statement) => self.evaluate(&return_statement.value).map(|v| LoxValue::RETURN(Box::new(v)))
         }
     }
 
@@ -267,13 +269,18 @@ impl Interpreter {
         }
     }
 
-    fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) {
+    fn execute_block(&mut self, stmts: &Vec<Box<Statement>>) -> Result<LoxValue, String> {
+        let mut return_value = LoxValue::NIL;
         self.environment.add_scope();
         for stmt in stmts {
-            // FIXME
-            self.evaluate_statement(stmt);
+            let tmp_result = self.evaluate_statement(stmt)?;
+            if let LoxValue::RETURN(_) = &tmp_result {
+                return_value = tmp_result;
+                break;
+            }
         }
         self.environment.pop_scope();
+        Ok(return_value)
     }
 
     fn evaluate_assignment(&mut self, a: &Assignment) -> Result<LoxValue, String> {
