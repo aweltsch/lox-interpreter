@@ -1,6 +1,7 @@
 use std::fmt;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::ptr;
 
 use crate::expr::*;
@@ -143,13 +144,14 @@ pub struct Interpreter {
     environment: Environment
 }
 
+#[derive(Debug, Clone)]
 pub struct Environment {
-    variable_maps: Vec<HashMap<String, LoxValue>>
+    variable_maps: Vec<Rc<RefCell<HashMap<String, LoxValue>>>>
 }
 
 impl Environment {
     pub fn new() -> Self {
-        Environment { variable_maps: vec![HashMap::new()] }
+        Environment { variable_maps: vec![Rc::new(RefCell::new(HashMap::new()))] }
     }
 
     fn is_valid_environment(&self) -> bool {
@@ -158,13 +160,13 @@ impl Environment {
 
     pub fn define(&mut self, name: &str, value: LoxValue) {
         assert!(self.is_valid_environment());
-        self.variable_maps.last_mut().unwrap().insert(name.to_string(), value);
+        self.variable_maps.last().unwrap().borrow_mut().insert(name.to_string(), value);
     }
 
     pub fn get(&self, name: &str) -> Result<LoxValue, String> {
         assert!(self.is_valid_environment());
         for scope in self.variable_maps.iter().rev() {
-            if let Some(val) = scope.get(name) {
+            if let Some(val) = scope.borrow().get(name) {
                 return Ok(val.clone());
             }
         }
@@ -174,8 +176,9 @@ impl Environment {
     pub fn assign(&mut self, name: &str, value: LoxValue) -> Result<LoxValue, String> {
         assert!(self.is_valid_environment());
         for scope in self.variable_maps.iter_mut().rev() {
-            if scope.contains_key(name) {
-                scope.insert(name.to_string(), value.clone());
+            let mut map = scope.borrow_mut();
+            if map.contains_key(name) {
+                map.insert(name.to_string(), value.clone());
                 return Ok(value);
             }
         }
@@ -184,7 +187,7 @@ impl Environment {
 
     pub fn add_scope(&mut self) {
         assert!(self.is_valid_environment());
-        self.variable_maps.push(HashMap::new());
+        self.variable_maps.push(Rc::new(RefCell::new(HashMap::new())));
     }
 
     pub fn pop_scope(&mut self) {
