@@ -1,0 +1,3 @@
+# rlox - A lox implementation in rust
+This repository contains some code implementing part of the Crafting Interpreters book.
+The implementation is done in Rust.
